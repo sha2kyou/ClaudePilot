@@ -43,7 +43,6 @@ struct ClaudeProfile: Identifiable, Codable, Equatable {
         case model
         case apiKey
         case customEnvEntries
-        case apiKeyPath
     }
 
     init(from decoder: Decoder) throws {
@@ -52,19 +51,8 @@ struct ClaudeProfile: Identifiable, Codable, Equatable {
         name = try container.decode(String.self, forKey: .name)
         baseURL = try container.decode(String.self, forKey: .baseURL)
         model = try container.decode(String.self, forKey: .model)
-        let decodedApiKey = try container.decodeIfPresent(String.self, forKey: .apiKey) ?? ""
-        let decodedCustomEnvEntries = try container.decodeIfPresent([CustomEnvEntry].self, forKey: .customEnvEntries) ?? []
-        let legacyAPIKeyPath = try container.decodeIfPresent(String.self, forKey: .apiKeyPath) ?? "env.ANTHROPIC_API_KEY"
-
-        if decodedCustomEnvEntries.isEmpty,
-           legacyAPIKeyPath != "env.ANTHROPIC_API_KEY",
-           !decodedApiKey.isEmpty {
-            apiKey = ""
-            customEnvEntries = [CustomEnvEntry(keyPath: legacyAPIKeyPath, value: decodedApiKey)]
-        } else {
-            apiKey = decodedApiKey
-            customEnvEntries = decodedCustomEnvEntries
-        }
+        apiKey = try container.decodeIfPresent(String.self, forKey: .apiKey) ?? ""
+        customEnvEntries = try container.decodeIfPresent([CustomEnvEntry].self, forKey: .customEnvEntries) ?? []
     }
 
     func encode(to encoder: Encoder) throws {
