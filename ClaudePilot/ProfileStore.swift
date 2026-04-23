@@ -19,35 +19,32 @@ final class ProfileStore: ObservableObject {
         load()
     }
 
-    func addProfile(name: String, baseURL: String, model: String, apiKey: String) {
-        let profile = ClaudeProfile(name: name, baseURL: baseURL, model: model)
+    func addProfile(name: String, baseURL: String, model: String, apiKey: String, apiKeyPath: String) {
+        let profile = ClaudeProfile(
+            name: name,
+            baseURL: baseURL,
+            model: model,
+            apiKey: apiKey,
+            apiKeyPath: apiKeyPath
+        )
         profiles.append(profile)
-        if !apiKey.isEmpty {
-            try? KeychainService.saveAPIKey(apiKey, for: profile.id)
-        }
         persist()
     }
 
-    func updateProfile(_ profile: ClaudeProfile, apiKey: String) {
+    func updateProfile(_ profile: ClaudeProfile) {
         guard let index = profiles.firstIndex(where: { $0.id == profile.id }) else {
             return
         }
         profiles[index] = profile
-        try? KeychainService.saveAPIKey(apiKey, for: profile.id)
         persist()
     }
 
     func deleteProfile(id: UUID) {
         profiles.removeAll { $0.id == id }
-        KeychainService.deleteAPIKey(for: id)
         if currentProfileID == id {
             currentProfileID = nil
         }
         persist()
-    }
-
-    func apiKey(for id: UUID) -> String {
-        KeychainService.readAPIKey(for: id)
     }
 
     func applyCurrentProfile() {
@@ -57,9 +54,8 @@ final class ProfileStore: ObservableObject {
             return
         }
 
-        let apiKey = KeychainService.readAPIKey(for: id)
         do {
-            try writeClaudeSettingsFile(profile: profile, apiKey: apiKey)
+            try writeClaudeSettingsFile(profile: profile)
             statusMessage = "已更新 ~/.claude/settings.json"
             persist()
         } catch {
@@ -103,7 +99,7 @@ final class ProfileStore: ObservableObject {
         }
     }
 
-    private func writeClaudeSettingsFile(profile: ClaudeProfile, apiKey: String) throws {
+    private func writeClaudeSettingsFile(profile: ClaudeProfile) throws {
         let home = realUserHomeDirectory()
         let folder = home.appendingPathComponent(".claude", isDirectory: true)
         try fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -132,18 +128,21 @@ final class ProfileStore: ObservableObject {
         env.removeValue(forKey: "ANTHROPIC_BASE_URL")
         env.removeValue(forKey: "ANTHROPIC_MODEL")
 
-        let normalizedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedAPIKey = profile.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedBaseURL = profile.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedModel = profile.model.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedAPIKeyPath = profile.apiKeyPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        let apiKeyEnvKey = parseEnvKey(from: normalizedAPIKeyPath) ?? "ANTHROPIC_API_KEY"
 
-        if !normalizedAPIKey.isEmpty {
-            env["ANTHROPIC_API_KEY"] = normalizedAPIKey
-        }
+        env.removeValue(forKey: apiKeyEnvKey)
         if !normalizedBaseURL.isEmpty {
             env["ANTHROPIC_BASE_URL"] = normalizedBaseURL
         }
         if !normalizedModel.isEmpty {
             env["ANTHROPIC_MODEL"] = normalizedModel
+        }
+        if !normalizedAPIKey.isEmpty {
+            env[apiKeyEnvKey] = normalizedAPIKey
         }
         root["env"] = env
 
@@ -174,5 +173,17 @@ final class ProfileStore: ObservableObject {
             create: true
         )
         return base.appendingPathComponent("ClaudePilot", isDirectory: true)
+    }
+
+    private func parseEnvKey(from path: String) -> String? {
+        let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return nil
+        }
+        if trimmed.hasPrefix("env.") {
+            let key = String(trimmed.dropFirst(4)).trimmingCharacters(in: .whitespacesAndNewlines)
+            return key.isEmpty ? nil : key
+        }
+        return nil
     }
 }

@@ -6,6 +6,7 @@ struct ContentView: View {
         var baseURL: String = ""
         var model: String = ""
         var apiKey: String = ""
+        var apiKeyPath: String = "env.ANTHROPIC_API_KEY"
     }
 
     @EnvironmentObject private var profileStore: ProfileStore
@@ -14,11 +15,11 @@ struct ContentView: View {
     @State private var confirmingDelete = false
     @State private var showingCreateSheet = false
     @State private var isLoadingSelection = false
-    @State private var apiKeyDirty = false
     @State private var name: String = ""
     @State private var baseURL: String = ""
     @State private var model: String = ""
     @State private var apiKey: String = ""
+    @State private var apiKeyPath: String = "env.ANTHROPIC_API_KEY"
 
     var body: some View {
         NavigationSplitView {
@@ -68,6 +69,10 @@ struct ContentView: View {
                             SecureField("", text: $apiKey)
                                 .textFieldStyle(.roundedBorder)
                         }
+                        LabeledContent("API Key 路径") {
+                            TextField("env.ANTHROPIC_API_KEY", text: $apiKeyPath)
+                                .textFieldStyle(.roundedBorder)
+                        }
                         LabeledContent("Model") {
                             TextField("", text: $model)
                                 .textFieldStyle(.roundedBorder)
@@ -94,9 +99,9 @@ struct ContentView: View {
             autoSaveAndApplyIfNeeded()
         }
         .onChange(of: apiKey) { _, _ in
-            if !isLoadingSelection {
-                apiKeyDirty = true
-            }
+            autoSaveAndApplyIfNeeded()
+        }
+        .onChange(of: apiKeyPath) { _, _ in
             autoSaveAndApplyIfNeeded()
         }
         .confirmationDialog("确认删除当前配置？", isPresented: $confirmingDelete) {
@@ -133,15 +138,15 @@ struct ContentView: View {
             baseURL = ""
             model = ""
             apiKey = ""
-            apiKeyDirty = false
+            apiKeyPath = "env.ANTHROPIC_API_KEY"
             return
         }
 
         name = profile.name
         baseURL = profile.baseURL
         model = profile.model
-        apiKey = profileStore.apiKey(for: id)
-        apiKeyDirty = false
+        apiKey = profile.apiKey
+        apiKeyPath = profile.apiKeyPath
     }
 
     private func saveSelectedProfile() {
@@ -153,8 +158,7 @@ struct ContentView: View {
         let normalizedBaseURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        let existingAPIKey = profileStore.apiKey(for: id).trimmingCharacters(in: .whitespacesAndNewlines)
-        let apiKeyToPersist = apiKeyDirty ? normalizedAPIKey : existingAPIKey
+        let normalizedAPIKeyPath = apiKeyPath.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !normalizedName.isEmpty else {
             return
@@ -164,10 +168,11 @@ struct ContentView: View {
             id: id,
             name: normalizedName,
             baseURL: normalizedBaseURL,
-            model: normalizedModel
+            model: normalizedModel,
+            apiKey: normalizedAPIKey,
+            apiKeyPath: normalizedAPIKeyPath.isEmpty ? "env.ANTHROPIC_API_KEY" : normalizedAPIKeyPath
         )
-        profileStore.updateProfile(updated, apiKey: apiKeyToPersist)
-        apiKeyDirty = false
+        profileStore.updateProfile(updated)
     }
 
     private func deletePendingProfile() {
@@ -190,12 +195,13 @@ struct ContentView: View {
         let normalizedBaseURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        let existingAPIKey = profileStore.apiKey(for: id).trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedAPIKeyPath = apiKeyPath.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let hasChanges = normalizedName != profile.name
             || normalizedBaseURL != profile.baseURL
             || normalizedModel != profile.model
-            || normalizedAPIKey != existingAPIKey
+            || normalizedAPIKey != profile.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            || normalizedAPIKeyPath != profile.apiKeyPath
         guard hasChanges else {
             return
         }
@@ -208,6 +214,7 @@ struct ContentView: View {
         let normalizedBaseURL = draft.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedModel = draft.model.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedAPIKey = draft.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedAPIKeyPath = draft.apiKeyPath.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedName.isEmpty else {
             return
         }
@@ -216,7 +223,8 @@ struct ContentView: View {
             name: normalizedName,
             baseURL: normalizedBaseURL,
             model: normalizedModel,
-            apiKey: normalizedAPIKey
+            apiKey: normalizedAPIKey,
+            apiKeyPath: normalizedAPIKeyPath.isEmpty ? "env.ANTHROPIC_API_KEY" : normalizedAPIKeyPath
         )
     }
 }
@@ -239,6 +247,10 @@ private struct CreateProfileSheet: View {
                 }
                 LabeledContent("API Key") {
                     SecureField("", text: $draft.apiKey)
+                        .textFieldStyle(.roundedBorder)
+                }
+                LabeledContent("API Key 路径") {
+                    TextField("env.ANTHROPIC_API_KEY", text: $draft.apiKeyPath)
                         .textFieldStyle(.roundedBorder)
                 }
                 LabeledContent("Model") {
