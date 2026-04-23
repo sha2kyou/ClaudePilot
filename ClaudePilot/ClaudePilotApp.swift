@@ -52,7 +52,7 @@ final class ClaudePilotAppDelegate: NSObject, NSApplicationDelegate, NSWindowDel
 
         let rootView = ContentView()
             .environmentObject(profileStore)
-            .frame(width: 750, height: 500)
+            .frame(height: 500)
         let hostingController = NSHostingController(rootView: rootView)
 
         let window = NSWindow(
@@ -69,7 +69,7 @@ final class ClaudePilotAppDelegate: NSObject, NSApplicationDelegate, NSWindowDel
         window.toolbarStyle = .unified
         window.setContentSize(NSSize(width: 750, height: 500))
         window.minSize = NSSize(width: 750, height: 500)
-        window.maxSize = NSSize(width: 750, height: 500)
+        window.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: 500)
         window.isReleasedWhenClosed = false
         window.delegate = self
         window.center()

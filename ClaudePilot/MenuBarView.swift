@@ -59,8 +59,7 @@ struct MenuBarView: View {
     }
 
     private func selectAndApply(profileID: UUID) {
-        profileStore.currentProfileID = profileID
-        profileStore.applyCurrentProfile()
+        profileStore.switchProfileAndApply(profileID: profileID)
     }
 
     private func toggleLaunchAtLogin() {

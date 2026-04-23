@@ -61,7 +61,25 @@ final class ProfileStore: ObservableObject {
         }
 
         do {
-            try writeClaudeSettingsFile(profile: profile)
+            try writeClaudeSettingsFile(profile: profile, removing: [])
+            statusMessage = "已更新 ~/.claude/settings.json"
+            persist()
+        } catch {
+            statusMessage = "应用失败: \(error.localizedDescription)"
+        }
+    }
+
+    func switchProfileAndApply(profileID: UUID) {
+        let previousProfile = profiles.first(where: { $0.id == currentProfileID })
+        currentProfileID = profileID
+        guard let nextProfile = profiles.first(where: { $0.id == profileID }) else {
+            statusMessage = "未找到当前配置"
+            return
+        }
+
+        let previousManagedKeyPaths = managedKeyPaths(for: previousProfile)
+        do {
+            try writeClaudeSettingsFile(profile: nextProfile, removing: previousManagedKeyPaths)
             statusMessage = "已更新 ~/.claude/settings.json"
             persist()
         } catch {
@@ -105,7 +123,7 @@ final class ProfileStore: ObservableObject {
         }
     }
 
-    private func writeClaudeSettingsFile(profile: ClaudeProfile) throws {
+    private func writeClaudeSettingsFile(profile: ClaudeProfile, removing staleManagedKeyPaths: Set<String>) throws {
         let home = realUserHomeDirectory()
         let folder = home.appendingPathComponent(".claude", isDirectory: true)
         try fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -137,17 +155,34 @@ final class ProfileStore: ObservableObject {
             CustomEnvEntry(keyPath: "env.ANTHROPIC_API_KEY", value: normalizedAPIKey),
             CustomEnvEntry(keyPath: "env.ANTHROPIC_MODEL", value: normalizedModel)
         ]
+        for stalePath in staleManagedKeyPaths {
+            removeValue(in: &root, path: stalePath.split(separator: ".").map(String.init))
+        }
 
-        for entry in builtInEntries + profile.customEnvEntries {
-            let pathComponents = entry.keyPath
-                .split(separator: ".")
-                .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-            guard !pathComponents.isEmpty,
-                  !entry.value.isEmpty else {
+        for entry in builtInEntries {
+            guard let normalizedPath = normalizedKeyPath(entry.keyPath) else {
                 continue
             }
-            setValue(in: &root, path: pathComponents, value: entry.value)
+            let pathComponents = normalizedPath.split(separator: ".").map(String.init)
+
+            if entry.value.isEmpty {
+                removeValue(in: &root, path: pathComponents)
+            } else {
+                setValue(in: &root, path: pathComponents, value: entry.value)
+            }
+        }
+
+        for entry in profile.customEnvEntries {
+            guard let normalizedPath = normalizedKeyPath(entry.keyPath) else {
+                continue
+            }
+            let pathComponents = normalizedPath.split(separator: ".").map(String.init)
+            let normalizedValue = entry.value.trimmingCharacters(in: .whitespacesAndNewlines)
+            if normalizedValue.isEmpty {
+                removeValue(in: &root, path: pathComponents)
+            } else {
+                setValue(in: &root, path: pathComponents, value: normalizedValue)
+            }
         }
 
         let data = try JSONSerialization.data(
@@ -249,5 +284,58 @@ final class ProfileStore: ObservableObject {
         var child = root[first] as? [String: Any] ?? [:]
         setValue(in: &child, path: Array(path.dropFirst()), value: value)
         root[first] = child
+    }
+
+    @discardableResult
+    private func removeValue(in root: inout [String: Any], path: [String]) -> Bool {
+        guard let first = path.first else {
+            return root.isEmpty
+        }
+
+        if path.count == 1 {
+            root.removeValue(forKey: first)
+            return root.isEmpty
+        }
+
+        guard var child = root[first] as? [String: Any] else {
+            return root.isEmpty
+        }
+
+        let childIsEmpty = removeValue(in: &child, path: Array(path.dropFirst()))
+        if childIsEmpty {
+            root.removeValue(forKey: first)
+        } else {
+            root[first] = child
+        }
+        return root.isEmpty
+    }
+
+    private func normalizedKeyPath(_ rawPath: String) -> String? {
+        let components = rawPath
+            .split(separator: ".")
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard !components.isEmpty else {
+            return nil
+        }
+        return components.joined(separator: ".")
+    }
+
+    private func managedKeyPaths(for profile: ClaudeProfile?) -> Set<String> {
+        guard let profile else {
+            return []
+        }
+
+        let normalizedAPIKey = profile.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedBaseURL = profile.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedModel = profile.model.trimmingCharacters(in: .whitespacesAndNewlines)
+        let builtInEntries: [CustomEnvEntry] = [
+            CustomEnvEntry(keyPath: "env.ANTHROPIC_BASE_URL", value: normalizedBaseURL),
+            CustomEnvEntry(keyPath: "env.ANTHROPIC_API_KEY", value: normalizedAPIKey),
+            CustomEnvEntry(keyPath: "env.ANTHROPIC_MODEL", value: normalizedModel)
+        ]
+        return Set((builtInEntries + profile.customEnvEntries).compactMap {
+            normalizedKeyPath($0.keyPath)
+        })
     }
 }
