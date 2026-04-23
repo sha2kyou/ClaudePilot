@@ -19,13 +19,19 @@ final class ProfileStore: ObservableObject {
         load()
     }
 
-    func addProfile(name: String, baseURL: String, model: String, apiKey: String, apiKeyPath: String) {
+    func addProfile(
+        name: String,
+        baseURL: String,
+        model: String,
+        apiKey: String,
+        customEnvEntries: [CustomEnvEntry]
+    ) {
         let profile = ClaudeProfile(
             name: name,
             baseURL: baseURL,
             model: model,
             apiKey: apiKey,
-            apiKeyPath: apiKeyPath
+            customEnvEntries: customEnvEntries
         )
         profiles.append(profile)
         persist()
@@ -123,28 +129,26 @@ final class ProfileStore: ObservableObject {
             }
         }
 
-        var env = root["env"] as? [String: Any] ?? [:]
-        env.removeValue(forKey: "ANTHROPIC_API_KEY")
-        env.removeValue(forKey: "ANTHROPIC_BASE_URL")
-        env.removeValue(forKey: "ANTHROPIC_MODEL")
-
         let normalizedAPIKey = profile.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedBaseURL = profile.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedModel = profile.model.trimmingCharacters(in: .whitespacesAndNewlines)
-        let normalizedAPIKeyPath = profile.apiKeyPath.trimmingCharacters(in: .whitespacesAndNewlines)
-        let apiKeyEnvKey = parseEnvKey(from: normalizedAPIKeyPath) ?? "ANTHROPIC_API_KEY"
+        let builtInEntries: [CustomEnvEntry] = [
+            CustomEnvEntry(keyPath: "env.ANTHROPIC_BASE_URL", value: normalizedBaseURL),
+            CustomEnvEntry(keyPath: "env.ANTHROPIC_API_KEY", value: normalizedAPIKey),
+            CustomEnvEntry(keyPath: "env.ANTHROPIC_MODEL", value: normalizedModel)
+        ]
 
-        env.removeValue(forKey: apiKeyEnvKey)
-        if !normalizedBaseURL.isEmpty {
-            env["ANTHROPIC_BASE_URL"] = normalizedBaseURL
+        for entry in builtInEntries + profile.customEnvEntries {
+            let pathComponents = entry.keyPath
+                .split(separator: ".")
+                .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            guard !pathComponents.isEmpty,
+                  !entry.value.isEmpty else {
+                continue
+            }
+            setValue(in: &root, path: pathComponents, value: entry.value)
         }
-        if !normalizedModel.isEmpty {
-            env["ANTHROPIC_MODEL"] = normalizedModel
-        }
-        if !normalizedAPIKey.isEmpty {
-            env[apiKeyEnvKey] = normalizedAPIKey
-        }
-        root["env"] = env
 
         let data = try JSONSerialization.data(
             withJSONObject: root,
@@ -175,15 +179,17 @@ final class ProfileStore: ObservableObject {
         return base.appendingPathComponent("ClaudePilot", isDirectory: true)
     }
 
-    private func parseEnvKey(from path: String) -> String? {
-        let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            return nil
+    private func setValue(in root: inout [String: Any], path: [String], value: String) {
+        guard let first = path.first else {
+            return
         }
-        if trimmed.hasPrefix("env.") {
-            let key = String(trimmed.dropFirst(4)).trimmingCharacters(in: .whitespacesAndNewlines)
-            return key.isEmpty ? nil : key
+        if path.count == 1 {
+            root[first] = value
+            return
         }
-        return nil
+
+        var child = root[first] as? [String: Any] ?? [:]
+        setValue(in: &child, path: Array(path.dropFirst()), value: value)
+        root[first] = child
     }
 }
