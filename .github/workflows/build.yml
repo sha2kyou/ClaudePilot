@@ -9,8 +9,8 @@ permissions:
 
 jobs:
   build-macos:
-    name: Build macOS
-    runs-on: macos-14
+    name: Build
+    runs-on: macos-26
     steps:
       - name: Checkout
         uses: actions/checkout@v4
