@@ -1,83 +1,267 @@
-//
-//  ContentView.swift
-//  ClaudePilot
-//
-//  Created by 刘卓明 on 2026/4/23.
-//
-
 import SwiftUI
-import CoreData
 
 struct ContentView: View {
-    @Environment(\.managedObjectContext) private var viewContext
+    struct CreateDraft {
+        var name: String = ""
+        var baseURL: String = ""
+        var model: String = ""
+        var apiKey: String = ""
+    }
 
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Item.timestamp, ascending: true)],
-        animation: .default)
-    private var items: FetchedResults<Item>
+    @EnvironmentObject private var profileStore: ProfileStore
+    @State private var selectedProfileID: UUID?
+    @State private var profilePendingDeleteID: UUID?
+    @State private var confirmingDelete = false
+    @State private var showingCreateSheet = false
+    @State private var isLoadingSelection = false
+    @State private var apiKeyDirty = false
+    @State private var name: String = ""
+    @State private var baseURL: String = ""
+    @State private var model: String = ""
+    @State private var apiKey: String = ""
 
     var body: some View {
-        NavigationView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp!, formatter: itemFormatter)")
-                    } label: {
-                        Text(item.timestamp!, formatter: itemFormatter)
+        NavigationSplitView {
+            VStack(spacing: 0) {
+                List(selection: $selectedProfileID) {
+                    ForEach(profileStore.profiles) { profile in
+                        Text(profile.name)
+                            .tag(Optional(profile.id))
+                            .contextMenu {
+                                Button("删除配置", role: .destructive) {
+                                    profilePendingDeleteID = profile.id
+                                    confirmingDelete = true
+                                }
+                            }
                     }
                 }
-                .onDelete(perform: deleteItems)
             }
+            .navigationTitle("配置")
             .toolbar {
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showingCreateSheet = true
+                    } label: {
+                        Image(systemName: "plus")
                     }
+                    .help("新增配置")
                 }
             }
-            Text("Select an item")
+            .listStyle(.sidebar)
+            .frame(minWidth: 220, maxWidth: 220)
+            .navigationSplitViewColumnWidth(min: 220, ideal: 220, max: 220)
+        } detail: {
+            if selectedProfileID == nil {
+                ContentUnavailableView("请选择左侧配置", systemImage: "sidebar.left")
+            } else {
+                Form {
+                    Section("配置详情") {
+                        LabeledContent("配置名称") {
+                            TextField("", text: $name)
+                                .textFieldStyle(.roundedBorder)
+                        }
+                        LabeledContent("Base URL") {
+                            TextField("", text: $baseURL)
+                                .textFieldStyle(.roundedBorder)
+                        }
+                        LabeledContent("API Key") {
+                            SecureField("", text: $apiKey)
+                                .textFieldStyle(.roundedBorder)
+                        }
+                        LabeledContent("Model") {
+                            TextField("", text: $model)
+                                .textFieldStyle(.roundedBorder)
+                        }
+                    }
+                }
+                .formStyle(.grouped)
+            }
+        }
+        .onAppear {
+            selectedProfileID = profileStore.currentProfileID ?? profileStore.profiles.first?.id
+            loadSelection()
+        }
+        .onChange(of: selectedProfileID) { _, _ in
+            loadSelection()
+        }
+        .onChange(of: name) { _, _ in
+            autoSaveAndApplyIfNeeded()
+        }
+        .onChange(of: baseURL) { _, _ in
+            autoSaveAndApplyIfNeeded()
+        }
+        .onChange(of: model) { _, _ in
+            autoSaveAndApplyIfNeeded()
+        }
+        .onChange(of: apiKey) { _, _ in
+            if !isLoadingSelection {
+                apiKeyDirty = true
+            }
+            autoSaveAndApplyIfNeeded()
+        }
+        .confirmationDialog("确认删除当前配置？", isPresented: $confirmingDelete) {
+            Button("删除", role: .destructive) {
+                deletePendingProfile()
+            }
+            Button("取消", role: .cancel) { }
+        }
+        .sheet(isPresented: $showingCreateSheet) {
+            CreateProfileSheet(
+                onCancel: {
+                    showingCreateSheet = false
+                },
+                onSave: { draft in
+                    createProfile(draft)
+                    showingCreateSheet = false
+                }
+            )
         }
     }
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(context: viewContext)
-            newItem.timestamp = Date()
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
-        }
+    private var canSaveProfile: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            offsets.map { items[$0] }.forEach(viewContext.delete)
+    private func loadSelection() {
+        profileStore.clearStatus()
+        isLoadingSelection = true
+        defer { isLoadingSelection = false }
 
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
+        guard let id = selectedProfileID,
+              let profile = profileStore.profiles.first(where: { $0.id == id }) else {
+            name = ""
+            baseURL = ""
+            model = ""
+            apiKey = ""
+            apiKeyDirty = false
+            return
         }
+
+        name = profile.name
+        baseURL = profile.baseURL
+        model = profile.model
+        apiKey = profileStore.apiKey(for: id)
+        apiKeyDirty = false
+    }
+
+    private func saveSelectedProfile() {
+        guard let id = selectedProfileID else {
+            return
+        }
+
+        let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedBaseURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let existingAPIKey = profileStore.apiKey(for: id).trimmingCharacters(in: .whitespacesAndNewlines)
+        let apiKeyToPersist = apiKeyDirty ? normalizedAPIKey : existingAPIKey
+
+        guard !normalizedName.isEmpty else {
+            return
+        }
+
+        let updated = ClaudeProfile(
+            id: id,
+            name: normalizedName,
+            baseURL: normalizedBaseURL,
+            model: normalizedModel
+        )
+        profileStore.updateProfile(updated, apiKey: apiKeyToPersist)
+        apiKeyDirty = false
+    }
+
+    private func deletePendingProfile() {
+        guard let id = profilePendingDeleteID else {
+            return
+        }
+        profilePendingDeleteID = nil
+        profileStore.deleteProfile(id: id)
+        selectedProfileID = profileStore.profiles.first?.id
+    }
+
+    private func autoSaveAndApplyIfNeeded() {
+        guard !isLoadingSelection,
+              let id = selectedProfileID,
+              let profile = profileStore.profiles.first(where: { $0.id == id }) else {
+            return
+        }
+
+        let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedBaseURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let existingAPIKey = profileStore.apiKey(for: id).trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let hasChanges = normalizedName != profile.name
+            || normalizedBaseURL != profile.baseURL
+            || normalizedModel != profile.model
+            || normalizedAPIKey != existingAPIKey
+        guard hasChanges else {
+            return
+        }
+
+        saveSelectedProfile()
+    }
+
+    private func createProfile(_ draft: CreateDraft) {
+        let normalizedName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedBaseURL = draft.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedModel = draft.model.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedAPIKey = draft.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedName.isEmpty else {
+            return
+        }
+
+        profileStore.addProfile(
+            name: normalizedName,
+            baseURL: normalizedBaseURL,
+            model: normalizedModel,
+            apiKey: normalizedAPIKey
+        )
     }
 }
 
-private let itemFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .short
-    formatter.timeStyle = .medium
-    return formatter
-}()
+private struct CreateProfileSheet: View {
+    @State private var draft = ContentView.CreateDraft()
+    let onCancel: () -> Void
+    let onSave: (ContentView.CreateDraft) -> Void
 
-#Preview {
-    ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+    var body: some View {
+        NavigationStack {
+            Form {
+                LabeledContent("配置名称") {
+                    TextField("", text: $draft.name)
+                        .textFieldStyle(.roundedBorder)
+                }
+                LabeledContent("Base URL") {
+                    TextField("", text: $draft.baseURL)
+                        .textFieldStyle(.roundedBorder)
+                }
+                LabeledContent("API Key") {
+                    SecureField("", text: $draft.apiKey)
+                        .textFieldStyle(.roundedBorder)
+                }
+                LabeledContent("Model") {
+                    TextField("", text: $draft.model)
+                        .textFieldStyle(.roundedBorder)
+                }
+            }
+            .formStyle(.grouped)
+            .navigationTitle("新增配置")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") {
+                        onCancel()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") {
+                        onSave(draft)
+                    }
+                    .disabled(draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+        .frame(width: 500)
+    }
 }

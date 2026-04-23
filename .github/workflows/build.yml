@@ -1,0 +1,68 @@
+name: Build
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Xcode Version
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Xcode Version (Selected)
+        run: xcodebuild -version
+
+      - name: Build (Release)
+        run: |
+          xcodebuild \
+            -project "ClaudePilot.xcodeproj" \
+            -scheme "ClaudePilot" \
+            -configuration "Release" \
+            -sdk "macosx" \
+            -destination "platform=macOS" \
+            -derivedDataPath "${RUNNER_TEMP}/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package .app
+        run: |
+          APP_PATH="${RUNNER_TEMP}/DerivedData/Build/Products/Release/ClaudePilot.app"
+          OUTPUT_ZIP="${RUNNER_TEMP}/ClaudePilot-${GITHUB_REF_NAME}.zip"
+          test -d "${APP_PATH}"
+          ditto -c -k --sequesterRsrc --keepParent "${APP_PATH}" "${OUTPUT_ZIP}"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClaudePilot-${{ github.ref_name }}
+          path: ${{ runner.temp }}/ClaudePilot-${{ github.ref_name }}.zip
+          if-no-files-found: error
+
+  release:
+    name: Release
+    needs: build-macos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ClaudePilot-${{ github.ref_name }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ClaudePilot-${{ github.ref_name }}.zip
+          generate_release_notes: true
+          fail_on_unmatched_files: true
