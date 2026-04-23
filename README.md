@@ -57,7 +57,7 @@ This workaround is not suitable for production distribution.
 
 - GitHub Actions workflow: `.github/workflows/build.yml`
 - Trigger: push tag matching `v*`
-- Output: zipped `.app` artifact and GitHub Release asset
+- Output: `.dmg` artifact and GitHub Release asset
 
 ## License
 
