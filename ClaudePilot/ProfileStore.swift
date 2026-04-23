@@ -82,7 +82,7 @@ final class ProfileStore: ObservableObject {
         do {
             let dir = try appSupportDirectory()
             try fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
-            try data.write(to: stateFileURL(), options: .atomic)
+            try atomicWrite(data, to: stateFileURL())
         } catch {
             statusMessage = "保存配置失败: \(error.localizedDescription)"
         }
@@ -154,7 +154,65 @@ final class ProfileStore: ObservableObject {
             withJSONObject: root,
             options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         )
-        try data.write(to: file, options: .atomic)
+        try atomicWrite(data, to: file)
+    }
+
+    private func atomicWrite(_ data: Data, to destination: URL) throws {
+        let parent = destination.deletingLastPathComponent()
+        let temporaryFile = parent.appendingPathComponent(".\(destination.lastPathComponent).tmp-\(UUID().uuidString)")
+
+        var shouldCleanupTemp = true
+        defer {
+            if shouldCleanupTemp {
+                try? fileManager.removeItem(at: temporaryFile)
+            }
+        }
+
+        guard fileManager.createFile(atPath: temporaryFile.path, contents: nil) else {
+            throw NSError(
+                domain: "ClaudePilot",
+                code: 1002,
+                userInfo: [NSLocalizedDescriptionKey: "创建临时文件失败: \(temporaryFile.path)"]
+            )
+        }
+
+        let handle = try FileHandle(forWritingTo: temporaryFile)
+        do {
+            try handle.write(contentsOf: data)
+            try handle.synchronize()
+            try handle.close()
+        } catch {
+            try? handle.close()
+            throw error
+        }
+
+        if fileManager.fileExists(atPath: destination.path) {
+            _ = try fileManager.replaceItemAt(destination, withItemAt: temporaryFile)
+        } else {
+            try fileManager.moveItem(at: temporaryFile, to: destination)
+        }
+        try synchronizeDirectory(parent)
+        shouldCleanupTemp = false
+    }
+
+    private func synchronizeDirectory(_ directory: URL) throws {
+        let fd = open(directory.path, O_RDONLY)
+        if fd < 0 {
+            throw NSError(
+                domain: NSPOSIXErrorDomain,
+                code: Int(errno),
+                userInfo: [NSLocalizedDescriptionKey: "打开目录失败: \(directory.path)"]
+            )
+        }
+        defer { close(fd) }
+
+        if fsync(fd) != 0 {
+            throw NSError(
+                domain: NSPOSIXErrorDomain,
+                code: Int(errno),
+                userInfo: [NSLocalizedDescriptionKey: "同步目录失败: \(directory.path)"]
+            )
+        }
     }
 
     private func realUserHomeDirectory() -> URL {

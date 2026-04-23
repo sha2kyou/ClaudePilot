@@ -101,7 +101,7 @@ struct ContentView: View {
                     Section("自定义配置") {
                         CustomEnvEntriesEditor(entries: $customEnvEntries)
                     }
-                    Section("JSON 配置预览") {
+                    Section("JSON（settings.json）预览") {
                         ScrollView {
                             Text(previewJSONText)
                                 .font(.system(.caption, design: .monospaced))
@@ -199,7 +199,7 @@ struct ContentView: View {
         }
         profilePendingDeleteID = nil
         profileStore.deleteProfile(id: id)
-        selectedProfileID = profileStore.profiles.first?.id
+        selectedProfileID = nil
     }
 
     private func autoSaveAndApplyIfNeeded() {
