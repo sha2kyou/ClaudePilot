@@ -8,6 +8,7 @@
 import SwiftUI
 import AppKit
 
+@MainActor
 enum SharedProfileStore {
     static let instance = ProfileStore()
 }
@@ -16,6 +17,7 @@ extension Notification.Name {
     static let openMainWindowRequested = Notification.Name("openMainWindowRequested")
 }
 
+@MainActor
 final class ClaudePilotAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private static let mainWindowIdentifier = NSUserInterfaceItemIdentifier("claudepilot.main-window")
     private var mainWindow: NSWindow?
@@ -89,6 +91,7 @@ final class ClaudePilotAppDelegate: NSObject, NSApplicationDelegate, NSWindowDel
 }
 
 @main
+@MainActor
 struct ClaudePilotApp: App {
     @NSApplicationDelegateAdaptor(ClaudePilotAppDelegate.self) var appDelegate
     @StateObject private var profileStore = SharedProfileStore.instance
