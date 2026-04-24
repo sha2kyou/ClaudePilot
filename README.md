@@ -12,11 +12,10 @@ ClaudePilot is a macOS menu bar application for managing multiple Claude API pro
 
 ## Features
 
-- Manage multiple profiles (name, base URL, model, API key).
-- Store API keys in macOS Keychain (per profile).
+- Manage multiple profiles (name, base URL, model, API key, optional auth token, custom env entries).
+- Persist profiles to local app support JSON (see Data and Storage).
 - Edit profile details in the configuration window.
 - Select active profile from menu bar and apply to `~/.claude/settings.json`.
-- Keep profile list in local app support storage.
 
 ## Requirements
 
@@ -32,14 +31,13 @@ ClaudePilot is a macOS menu bar application for managing multiple Claude API pro
 
 ## Data and Storage
 
-- Profile metadata file: `~/Library/Application Support/ClaudePilot/profiles.json`
-- API keys: stored in macOS Keychain
-- Applied runtime target file: `~/.claude/settings.json`
+- Profile state (including API key and auth token): `~/Library/Application Support/ClaudePilot/profiles.json` (JSON on disk).
+- Applied runtime target file: `~/.claude/settings.json` (may mirror env values from the active profile).
 
 ## Security Notes
 
-- API keys are not stored in plain text files by the app.
-- `~/.claude/settings.json` can contain API-related environment values after apply. Treat it as sensitive.
+- Treat `profiles.json` and `~/.claude/settings.json` as sensitive; do not commit them, sync them to untrusted hosts, or share copies casually.
+- If you use Git in your home directory or backup tools, exclude these paths or verify they are not archived into public artifacts.
 
 ## Gatekeeper (Unsigned Builds)
 
