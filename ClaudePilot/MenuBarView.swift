@@ -109,6 +109,7 @@ struct MenuBarView: View {
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
+        panel.showsHiddenFiles = true
         panel.directoryURL = URL(fileURLWithPath: ("~/.claude" as NSString).expandingTildeInPath, isDirectory: true)
         panel.title = String(localized: "menu_bar.action.edit_settings_path")
         let filterDelegate = SettingsJSONOpenPanelDelegate()
