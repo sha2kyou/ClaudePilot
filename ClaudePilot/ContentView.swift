@@ -62,12 +62,14 @@ struct ContentView: View {
                         LabeledContent("content.field.profile_name") {
                             TextField("", text: $name)
                                 .textFieldStyle(.roundedBorder)
+                                .frame(width: customKVColumnWidth)
                         }
                     }
                     Section("content.section.default") {
                         LabeledContent {
                             TextField("", text: $baseURL)
                                 .textFieldStyle(.roundedBorder)
+                                .frame(width: customKVColumnWidth)
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("content.field.base_url")
@@ -79,6 +81,7 @@ struct ContentView: View {
                         LabeledContent {
                             SecureField("", text: $apiKey)
                                 .textFieldStyle(.roundedBorder)
+                                .frame(width: customKVColumnWidth)
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("content.field.api_key")
@@ -90,6 +93,7 @@ struct ContentView: View {
                         LabeledContent {
                             SecureField("", text: $authToken)
                                 .textFieldStyle(.roundedBorder)
+                                .frame(width: customKVColumnWidth)
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("content.field.auth_token")
@@ -101,6 +105,7 @@ struct ContentView: View {
                         LabeledContent {
                             TextField("", text: $model)
                                 .textFieldStyle(.roundedBorder)
+                                .frame(width: customKVColumnWidth)
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("content.field.model")
