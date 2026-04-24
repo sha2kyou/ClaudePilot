@@ -1,6 +1,6 @@
 # ClaudePilot
 
-![Platform](https://img.shields.io/badge/platform-macOS-000000?logo=apple&logoColor=white) ![macOS](https://img.shields.io/badge/macOS-14.0%2B-0A84FF) ![Language](https://img.shields.io/badge/language-Swift-F05138?logo=swift&logoColor=white) ![Build](https://img.shields.io/github/actions/workflow/status/sha2kyou/ClaudePilot/build.yml?branch=main) ![Release](https://img.shields.io/github/v/release/sha2kyou/ClaudePilot?display_name=tag)
+![Platform](https://img.shields.io/badge/platform-macOS-000000?logo=apple&logoColor=white) ![macOS](https://img.shields.io/badge/macOS-14.0%2B-0A84FF) ![Language](https://img.shields.io/badge/language-Swift-F05138?logo=swift&logoColor=white) ![Build](https://img.shields.io/github/actions/workflow/status/sha2kyou/ClaudePilot/build.yml?event=push) ![Release](https://img.shields.io/github/v/release/sha2kyou/ClaudePilot?display_name=tag)
 
 ClaudePilot is a macOS menu bar application for managing multiple Claude API profiles and applying the selected profile into local Claude CLI settings.
 
