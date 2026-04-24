@@ -7,6 +7,17 @@ final class ProfileStore: ObservableObject {
     @Published var profiles: [ClaudeProfile] = []
     @Published var currentProfileID: UUID?
     @Published var statusMessage: String = ""
+    var userRelativeClaudeSettingsPath: String {
+        let settingsFile = claudeSettingsFileURL().standardizedFileURL.path
+        let home = realUserHomeDirectory().standardizedFileURL.path
+        if settingsFile == home {
+            return "~"
+        }
+        if settingsFile.hasPrefix(home + "/") {
+            return "~" + String(settingsFile.dropFirst(home.count))
+        }
+        return settingsFile
+    }
 
     private struct StoredState: Codable {
         var profiles: [ClaudeProfile]
@@ -58,16 +69,16 @@ final class ProfileStore: ObservableObject {
     func applyCurrentProfile() {
         guard let id = currentProfileID,
               let profile = profiles.first(where: { $0.id == id }) else {
-            statusMessage = "未找到当前配置"
+            statusMessage = String(localized: "profile_store.status.current_profile_not_found")
             return
         }
 
         do {
             try writeClaudeSettingsFile(profile: profile, removing: [])
-            statusMessage = "已更新 ~/.claude/settings.json"
+            statusMessage = String(localized: "profile_store.status.settings_updated")
             persist()
         } catch {
-            statusMessage = "应用失败: \(error.localizedDescription)"
+            statusMessage = String(format: String(localized: "profile_store.status.apply_failed"), error.localizedDescription)
         }
     }
 
@@ -75,17 +86,17 @@ final class ProfileStore: ObservableObject {
         let previousProfile = profiles.first(where: { $0.id == currentProfileID })
         currentProfileID = profileID
         guard let nextProfile = profiles.first(where: { $0.id == profileID }) else {
-            statusMessage = "未找到当前配置"
+            statusMessage = String(localized: "profile_store.status.current_profile_not_found")
             return
         }
 
         let previousManagedKeyPaths = managedKeyPaths(for: previousProfile)
         do {
             try writeClaudeSettingsFile(profile: nextProfile, removing: previousManagedKeyPaths)
-            statusMessage = "已更新 ~/.claude/settings.json"
+            statusMessage = String(localized: "profile_store.status.settings_updated")
             persist()
         } catch {
-            statusMessage = "应用失败: \(error.localizedDescription)"
+            statusMessage = String(format: String(localized: "profile_store.status.apply_failed"), error.localizedDescription)
         }
     }
 
@@ -104,7 +115,7 @@ final class ProfileStore: ObservableObject {
             try fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
             try atomicWrite(data, to: stateFileURL())
         } catch {
-            statusMessage = "保存配置失败: \(error.localizedDescription)"
+            statusMessage = String(format: String(localized: "profile_store.status.save_failed"), error.localizedDescription)
         }
     }
 
@@ -126,11 +137,9 @@ final class ProfileStore: ObservableObject {
     }
 
     private func writeClaudeSettingsFile(profile: ClaudeProfile, removing staleManagedKeyPaths: Set<String>) throws {
-        let home = realUserHomeDirectory()
-        let folder = home.appendingPathComponent(".claude", isDirectory: true)
+        let file = claudeSettingsFileURL()
+        let folder = file.deletingLastPathComponent()
         try fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
-
-        let file = folder.appendingPathComponent("settings.json", isDirectory: false)
         var root: [String: Any] = [:]
 
         if fileManager.fileExists(atPath: file.path) {
@@ -143,7 +152,7 @@ final class ProfileStore: ObservableObject {
                     throw NSError(
                         domain: "ClaudePilot",
                         code: 1001,
-                        userInfo: [NSLocalizedDescriptionKey: "settings.json 不是 JSON 对象"]
+                        userInfo: [NSLocalizedDescriptionKey: String(localized: "profile_store.error.settings_not_json_object")]
                     )
                 }
             }
@@ -211,7 +220,12 @@ final class ProfileStore: ObservableObject {
             throw NSError(
                 domain: "ClaudePilot",
                 code: 1002,
-                userInfo: [NSLocalizedDescriptionKey: "创建临时文件失败: \(temporaryFile.path)"]
+                userInfo: [
+                    NSLocalizedDescriptionKey: String(
+                        format: String(localized: "profile_store.error.create_temp_file_failed"),
+                        temporaryFile.path
+                    )
+                ]
             )
         }
 
@@ -240,7 +254,12 @@ final class ProfileStore: ObservableObject {
             throw NSError(
                 domain: NSPOSIXErrorDomain,
                 code: Int(errno),
-                userInfo: [NSLocalizedDescriptionKey: "打开目录失败: \(directory.path)"]
+                userInfo: [
+                    NSLocalizedDescriptionKey: String(
+                        format: String(localized: "profile_store.error.open_directory_failed"),
+                        directory.path
+                    )
+                ]
             )
         }
         defer { close(fd) }
@@ -249,7 +268,12 @@ final class ProfileStore: ObservableObject {
             throw NSError(
                 domain: NSPOSIXErrorDomain,
                 code: Int(errno),
-                userInfo: [NSLocalizedDescriptionKey: "同步目录失败: \(directory.path)"]
+                userInfo: [
+                    NSLocalizedDescriptionKey: String(
+                        format: String(localized: "profile_store.error.sync_directory_failed"),
+                        directory.path
+                    )
+                ]
             )
         }
     }
@@ -259,6 +283,12 @@ final class ProfileStore: ObservableObject {
             return URL(fileURLWithPath: String(cString: homePtr), isDirectory: true)
         }
         return fileManager.homeDirectoryForCurrentUser
+    }
+
+    private func claudeSettingsFileURL() -> URL {
+        realUserHomeDirectory()
+            .appendingPathComponent(".claude", isDirectory: true)
+            .appendingPathComponent("settings.json", isDirectory: false)
     }
 
     private func stateFileURL() -> URL {

@@ -33,13 +33,13 @@ struct ContentView: View {
                                 Image(systemName: "minus.circle")
                             }
                             .buttonStyle(.plain)
-                            .help("删除配置")
+                            .help(String(localized: "content.help.delete_profile"))
                         }
                             .tag(Optional(profile.id))
                     }
                 }
             }
-            .navigationTitle("配置")
+            .navigationTitle("content.navigation.title")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
@@ -47,7 +47,7 @@ struct ContentView: View {
                     } label: {
                         Image(systemName: "plus")
                     }
-                    .help("新增配置")
+                    .help(String(localized: "content.help.add_profile"))
                 }
             }
             .listStyle(.sidebar)
@@ -55,22 +55,22 @@ struct ContentView: View {
             .navigationSplitViewColumnWidth(min: 220, ideal: 220, max: 220)
         } detail: {
             if selectedProfileID == nil {
-                ContentUnavailableView("请选择左侧配置", systemImage: "sidebar.left")
+                ContentUnavailableView("content.empty.select_profile", systemImage: "sidebar.left")
             } else {
                 Form {
-                    Section("基本信息") {
-                        LabeledContent("配置名称") {
+                    Section("content.section.basic") {
+                        LabeledContent("content.field.profile_name") {
                             TextField("", text: $name)
                                 .textFieldStyle(.roundedBorder)
                         }
                     }
-                    Section("默认配置") {
+                    Section("content.section.default") {
                         LabeledContent {
                             TextField("", text: $baseURL)
                                 .textFieldStyle(.roundedBorder)
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Base URL")
+                                Text("content.field.base_url")
                                 Text("env.ANTHROPIC_BASE_URL")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -81,7 +81,7 @@ struct ContentView: View {
                                 .textFieldStyle(.roundedBorder)
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("API Key")
+                                Text("content.field.api_key")
                                 Text("env.ANTHROPIC_API_KEY")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -92,7 +92,7 @@ struct ContentView: View {
                                 .textFieldStyle(.roundedBorder)
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Auth Token")
+                                Text("content.field.auth_token")
                                 Text("env.ANTHROPIC_AUTH_TOKEN")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -103,17 +103,17 @@ struct ContentView: View {
                                 .textFieldStyle(.roundedBorder)
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Model")
+                                Text("content.field.model")
                                 Text("env.ANTHROPIC_MODEL")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                         }
                     }
-                    Section("自定义配置") {
+                    Section("content.section.custom") {
                         CustomEnvEntriesEditor(entries: $customEnvEntries)
                     }
-                    Section("JSON（settings.json）预览") {
+                    Section("content.section.preview_json") {
                         ScrollView {
                             Text(previewJSONText)
                                 .font(.system(.caption, design: .monospaced))
@@ -152,11 +152,11 @@ struct ContentView: View {
         .onChange(of: customEnvEntries) { _, _ in
             autoSaveAndApplyIfNeeded()
         }
-        .confirmationDialog("确认删除当前配置？", isPresented: $confirmingDelete) {
-            Button("删除", role: .destructive) {
+        .confirmationDialog("content.dialog.delete_profile.title", isPresented: $confirmingDelete) {
+            Button("content.action.delete", role: .destructive) {
                 deletePendingProfile()
             }
-            Button("取消", role: .cancel) { }
+            Button("content.action.cancel", role: .cancel) { }
         }
     }
 
@@ -249,7 +249,7 @@ struct ContentView: View {
     }
 
     private func addProfileFromList() {
-        let baseName = "新配置"
+        let baseName = String(localized: "content.default_profile_name")
         let normalizedExistingNames = Set(
             profileStore.profiles.map { $0.name.trimmingCharacters(in: .whitespacesAndNewlines) }
         )
@@ -354,15 +354,15 @@ private struct CustomEnvEntriesEditor: View {
                     Image(systemName: "plus.circle.fill")
                 }
                 .buttonStyle(.plain)
-                .help("新增自定义配置")
+                .help(String(localized: "content.help.add_custom_entry"))
             }
 
             HStack(spacing: 8) {
-                Text("键")
+                Text("content.custom.header.key")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(width: customKVColumnWidth, alignment: .leading)
-                Text("值")
+                Text("content.custom.header.value")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(width: customKVColumnWidth, alignment: .leading)
@@ -388,14 +388,14 @@ private struct CustomEnvEntriesEditor: View {
                         Image(systemName: "minus.circle")
                     }
                     .buttonStyle(.plain)
-                    .help("删除自定义配置")
+                    .help(String(localized: "content.help.delete_custom_entry"))
                     .frame(width: customKVActionWidth)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .confirmationDialog("确认删除该自定义配置？", isPresented: $confirmingDeleteEntry) {
-            Button("删除", role: .destructive) {
+        .confirmationDialog("content.dialog.delete_custom_entry.title", isPresented: $confirmingDeleteEntry) {
+            Button("content.action.delete", role: .destructive) {
                 guard let id = entryPendingDeleteID,
                       let index = entries.firstIndex(where: { $0.id == id }) else {
                     entryPendingDeleteID = nil
@@ -404,7 +404,7 @@ private struct CustomEnvEntriesEditor: View {
                 entries.remove(at: index)
                 entryPendingDeleteID = nil
             }
-            Button("取消", role: .cancel) {
+            Button("content.action.cancel", role: .cancel) {
                 entryPendingDeleteID = nil
             }
         }

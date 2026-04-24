@@ -1,0 +1,36 @@
+"content.navigation.title" = "配置";
+"content.help.delete_profile" = "删除配置";
+"content.help.add_profile" = "新增配置";
+"content.empty.select_profile" = "请选择左侧配置";
+"content.section.basic" = "基本信息";
+"content.field.profile_name" = "配置名称";
+"content.section.default" = "默认配置";
+"content.field.base_url" = "Base URL";
+"content.field.api_key" = "API Key";
+"content.field.auth_token" = "Auth Token";
+"content.field.model" = "Model";
+"content.section.custom" = "自定义配置";
+"content.section.preview_json" = "JSON（settings.json）预览";
+"content.dialog.delete_profile.title" = "确认删除当前配置？";
+"content.dialog.delete_custom_entry.title" = "确认删除该自定义配置？";
+"content.action.delete" = "删除";
+"content.action.cancel" = "取消";
+"content.default_profile_name" = "新配置";
+"content.help.add_custom_entry" = "新增自定义配置";
+"content.help.delete_custom_entry" = "删除自定义配置";
+"content.custom.header.key" = "键";
+"content.custom.header.value" = "值";
+
+"menu_bar.empty.no_profiles" = "暂无配置";
+"menu_bar.action.edit_profiles" = "编辑配置…";
+"menu_bar.action.launch_at_login" = "开机启动";
+"menu_bar.action.quit" = "退出";
+
+"profile_store.status.current_profile_not_found" = "未找到当前配置";
+"profile_store.status.settings_updated" = "已更新 ~/.claude/settings.json";
+"profile_store.status.apply_failed" = "应用失败: %@";
+"profile_store.status.save_failed" = "保存配置失败: %@";
+"profile_store.error.settings_not_json_object" = "settings.json 不是 JSON 对象";
+"profile_store.error.create_temp_file_failed" = "创建临时文件失败: %@";
+"profile_store.error.open_directory_failed" = "打开目录失败: %@";
+"profile_store.error.sync_directory_failed" = "同步目录失败: %@";

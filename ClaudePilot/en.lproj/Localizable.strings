@@ -1,0 +1,36 @@
+"content.navigation.title" = "Profiles";
+"content.help.delete_profile" = "Delete profile";
+"content.help.add_profile" = "Add profile";
+"content.empty.select_profile" = "Please select a profile from the sidebar";
+"content.section.basic" = "Basic";
+"content.field.profile_name" = "Profile Name";
+"content.section.default" = "Default Settings";
+"content.field.base_url" = "Base URL";
+"content.field.api_key" = "API Key";
+"content.field.auth_token" = "Auth Token";
+"content.field.model" = "Model";
+"content.section.custom" = "Custom Settings";
+"content.section.preview_json" = "JSON Preview (settings.json)";
+"content.dialog.delete_profile.title" = "Delete current profile?";
+"content.dialog.delete_custom_entry.title" = "Delete this custom setting?";
+"content.action.delete" = "Delete";
+"content.action.cancel" = "Cancel";
+"content.default_profile_name" = "New Profile";
+"content.help.add_custom_entry" = "Add custom setting";
+"content.help.delete_custom_entry" = "Delete custom setting";
+"content.custom.header.key" = "Key";
+"content.custom.header.value" = "Value";
+
+"menu_bar.empty.no_profiles" = "No profiles";
+"menu_bar.action.edit_profiles" = "Edit Profiles...";
+"menu_bar.action.launch_at_login" = "Launch at Login";
+"menu_bar.action.quit" = "Quit";
+
+"profile_store.status.current_profile_not_found" = "Current profile not found";
+"profile_store.status.settings_updated" = "Updated ~/.claude/settings.json";
+"profile_store.status.apply_failed" = "Apply failed: %@";
+"profile_store.status.save_failed" = "Failed to save profiles: %@";
+"profile_store.error.settings_not_json_object" = "settings.json is not a JSON object";
+"profile_store.error.create_temp_file_failed" = "Failed to create temporary file: %@";
+"profile_store.error.open_directory_failed" = "Failed to open directory: %@";
+"profile_store.error.sync_directory_failed" = "Failed to sync directory: %@";

@@ -7,8 +7,16 @@ struct MenuBarView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            Text(profileStore.userRelativeClaudeSettingsPath)
+                .font(.system(.caption, design: .monospaced))
+                .lineLimit(1)
+                .truncationMode(.middle)
+            .padding(.bottom, 6)
+
+            Divider()
+
             if profileStore.profiles.isEmpty {
-                Text("暂无配置")
+                Text("menu_bar.empty.no_profiles")
                     .foregroundColor(.secondary)
             } else {
                 ForEach(profileStore.profiles) { profile in
@@ -28,7 +36,7 @@ struct MenuBarView: View {
 
             Divider()
 
-            Button("编辑配置…") {
+            Button("menu_bar.action.edit_profiles") {
                 NotificationCenter.default.post(name: .openMainWindowRequested, object: nil)
             }
 
@@ -38,7 +46,7 @@ struct MenuBarView: View {
                 toggleLaunchAtLogin()
             } label: {
                 HStack {
-                    Text("开机启动")
+                    Text("menu_bar.action.launch_at_login")
                     Spacer()
                     if launchAtLoginEnabled {
                         Image(systemName: "checkmark")
@@ -49,7 +57,7 @@ struct MenuBarView: View {
 
             Divider()
 
-            Button("退出") {
+            Button("menu_bar.action.quit") {
                 NSApplication.shared.terminate(nil)
             }
         }
