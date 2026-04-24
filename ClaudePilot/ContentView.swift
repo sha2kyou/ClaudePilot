@@ -15,6 +15,8 @@ struct ContentView: View {
     @State private var model: String = ""
     @State private var apiKey: String = ""
     @State private var authToken: String = ""
+    @State private var showAPIKey = false
+    @State private var showAuthToken = false
     @State private var customEnvEntries: [CustomEnvEntry] = []
 
     var body: some View {
@@ -79,9 +81,8 @@ struct ContentView: View {
                             }
                         }
                         LabeledContent {
-                            SecureField("", text: $apiKey)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: customKVColumnWidth)
+                            SecretToggleField(text: $apiKey, isVisible: $showAPIKey)
+                            .frame(width: customKVColumnWidth)
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("content.field.api_key")
@@ -91,9 +92,8 @@ struct ContentView: View {
                             }
                         }
                         LabeledContent {
-                            SecureField("", text: $authToken)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: customKVColumnWidth)
+                            SecretToggleField(text: $authToken, isVisible: $showAuthToken)
+                            .frame(width: customKVColumnWidth)
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("content.field.auth_token")
@@ -177,6 +177,8 @@ struct ContentView: View {
             model = ""
             apiKey = ""
             authToken = ""
+            showAPIKey = false
+            showAuthToken = false
             customEnvEntries = []
             return
         }
@@ -186,6 +188,8 @@ struct ContentView: View {
         model = profile.model
         apiKey = profile.apiKey
         authToken = profile.authToken
+        showAPIKey = false
+        showAuthToken = false
         customEnvEntries = profile.customEnvEntries
     }
 
@@ -451,6 +455,34 @@ private struct FixedWidthTextField: NSViewRepresentable {
                 return
             }
             text = field.stringValue
+        }
+    }
+}
+
+private struct SecretToggleField: View {
+    @Binding var text: String
+    @Binding var isVisible: Bool
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Group {
+                if isVisible {
+                    TextField("", text: $text)
+                } else {
+                    SecureField("", text: $text)
+                }
+            }
+            .textFieldStyle(.roundedBorder)
+
+            Button {
+                isVisible.toggle()
+            } label: {
+                Image(systemName: isVisible ? "eye.slash.fill" : "eye.fill")
+                    .font(.system(size: 10, weight: .regular))
+                    .frame(width: 10, height: 10)
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
         }
     }
 }
