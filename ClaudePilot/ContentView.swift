@@ -14,6 +14,7 @@ struct ContentView: View {
     @State private var baseURL: String = ""
     @State private var model: String = ""
     @State private var apiKey: String = ""
+    @State private var authToken: String = ""
     @State private var customEnvEntries: [CustomEnvEntry] = []
 
     var body: some View {
@@ -87,6 +88,17 @@ struct ContentView: View {
                             }
                         }
                         LabeledContent {
+                            SecureField("", text: $authToken)
+                                .textFieldStyle(.roundedBorder)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Auth Token")
+                                Text("env.ANTHROPIC_AUTH_TOKEN")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        LabeledContent {
                             TextField("", text: $model)
                                 .textFieldStyle(.roundedBorder)
                         } label: {
@@ -134,6 +146,9 @@ struct ContentView: View {
         .onChange(of: apiKey) { _, _ in
             autoSaveAndApplyIfNeeded()
         }
+        .onChange(of: authToken) { _, _ in
+            autoSaveAndApplyIfNeeded()
+        }
         .onChange(of: customEnvEntries) { _, _ in
             autoSaveAndApplyIfNeeded()
         }
@@ -156,6 +171,7 @@ struct ContentView: View {
             baseURL = ""
             model = ""
             apiKey = ""
+            authToken = ""
             customEnvEntries = []
             return
         }
@@ -164,6 +180,7 @@ struct ContentView: View {
         baseURL = profile.baseURL
         model = profile.model
         apiKey = profile.apiKey
+        authToken = profile.authToken
         customEnvEntries = profile.customEnvEntries
     }
 
@@ -176,6 +193,7 @@ struct ContentView: View {
         let normalizedBaseURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedAuthToken = authToken.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedCustomEntries = normalizedEntries(customEnvEntries)
 
         guard !normalizedName.isEmpty else {
@@ -188,6 +206,7 @@ struct ContentView: View {
             baseURL: normalizedBaseURL,
             model: normalizedModel,
             apiKey: normalizedAPIKey,
+            authToken: normalizedAuthToken,
             customEnvEntries: normalizedCustomEntries
         )
         profileStore.updateProfile(updated)
@@ -213,12 +232,14 @@ struct ContentView: View {
         let normalizedBaseURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedAuthToken = authToken.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedCustomEntries = normalizedEntries(customEnvEntries)
 
         let hasChanges = normalizedName != profile.name
             || normalizedBaseURL != profile.baseURL
             || normalizedModel != profile.model
             || normalizedAPIKey != profile.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            || normalizedAuthToken != profile.authToken.trimmingCharacters(in: .whitespacesAndNewlines)
             || normalizedCustomEntries != normalizedEntries(profile.customEnvEntries)
         guard hasChanges else {
             return
@@ -249,6 +270,7 @@ struct ContentView: View {
             baseURL: "",
             model: "",
             apiKey: "",
+            authToken: "",
             customEnvEntries: []
         )
         selectedProfileID = profileStore.profiles.last?.id
@@ -267,12 +289,14 @@ struct ContentView: View {
     private var previewJSONText: String {
         let normalizedBaseURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedAuthToken = authToken.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedCustomEntries = normalizedEntries(customEnvEntries)
 
         let builtInEntries: [CustomEnvEntry] = [
             CustomEnvEntry(keyPath: "env.ANTHROPIC_BASE_URL", value: normalizedBaseURL),
             CustomEnvEntry(keyPath: "env.ANTHROPIC_API_KEY", value: normalizedAPIKey),
+            CustomEnvEntry(keyPath: "env.ANTHROPIC_AUTH_TOKEN", value: normalizedAuthToken),
             CustomEnvEntry(keyPath: "env.ANTHROPIC_MODEL", value: normalizedModel)
         ]
 

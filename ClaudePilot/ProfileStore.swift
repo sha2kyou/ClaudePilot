@@ -24,6 +24,7 @@ final class ProfileStore: ObservableObject {
         baseURL: String,
         model: String,
         apiKey: String,
+        authToken: String,
         customEnvEntries: [CustomEnvEntry]
     ) {
         let profile = ClaudeProfile(
@@ -31,6 +32,7 @@ final class ProfileStore: ObservableObject {
             baseURL: baseURL,
             model: model,
             apiKey: apiKey,
+            authToken: authToken,
             customEnvEntries: customEnvEntries
         )
         profiles.append(profile)
@@ -148,11 +150,13 @@ final class ProfileStore: ObservableObject {
         }
 
         let normalizedAPIKey = profile.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedAuthToken = profile.authToken.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedBaseURL = profile.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedModel = profile.model.trimmingCharacters(in: .whitespacesAndNewlines)
         let builtInEntries: [CustomEnvEntry] = [
             CustomEnvEntry(keyPath: "env.ANTHROPIC_BASE_URL", value: normalizedBaseURL),
             CustomEnvEntry(keyPath: "env.ANTHROPIC_API_KEY", value: normalizedAPIKey),
+            CustomEnvEntry(keyPath: "env.ANTHROPIC_AUTH_TOKEN", value: normalizedAuthToken),
             CustomEnvEntry(keyPath: "env.ANTHROPIC_MODEL", value: normalizedModel)
         ]
         for stalePath in staleManagedKeyPaths {
@@ -327,11 +331,13 @@ final class ProfileStore: ObservableObject {
         }
 
         let normalizedAPIKey = profile.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedAuthToken = profile.authToken.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedBaseURL = profile.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedModel = profile.model.trimmingCharacters(in: .whitespacesAndNewlines)
         let builtInEntries: [CustomEnvEntry] = [
             CustomEnvEntry(keyPath: "env.ANTHROPIC_BASE_URL", value: normalizedBaseURL),
             CustomEnvEntry(keyPath: "env.ANTHROPIC_API_KEY", value: normalizedAPIKey),
+            CustomEnvEntry(keyPath: "env.ANTHROPIC_AUTH_TOKEN", value: normalizedAuthToken),
             CustomEnvEntry(keyPath: "env.ANTHROPIC_MODEL", value: normalizedModel)
         ]
         return Set((builtInEntries + profile.customEnvEntries).compactMap {

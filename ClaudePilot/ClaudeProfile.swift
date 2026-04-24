@@ -18,6 +18,7 @@ struct ClaudeProfile: Identifiable, Codable, Equatable {
     var baseURL: String
     var model: String
     var apiKey: String
+    var authToken: String
     var customEnvEntries: [CustomEnvEntry]
 
     init(
@@ -26,6 +27,7 @@ struct ClaudeProfile: Identifiable, Codable, Equatable {
         baseURL: String,
         model: String,
         apiKey: String = "",
+        authToken: String = "",
         customEnvEntries: [CustomEnvEntry] = []
     ) {
         self.id = id
@@ -33,6 +35,7 @@ struct ClaudeProfile: Identifiable, Codable, Equatable {
         self.baseURL = baseURL
         self.model = model
         self.apiKey = apiKey
+        self.authToken = authToken
         self.customEnvEntries = customEnvEntries
     }
 
@@ -42,6 +45,7 @@ struct ClaudeProfile: Identifiable, Codable, Equatable {
         case baseURL
         case model
         case apiKey
+        case authToken
         case customEnvEntries
     }
 
@@ -52,6 +56,7 @@ struct ClaudeProfile: Identifiable, Codable, Equatable {
         baseURL = try container.decode(String.self, forKey: .baseURL)
         model = try container.decode(String.self, forKey: .model)
         apiKey = try container.decodeIfPresent(String.self, forKey: .apiKey) ?? ""
+        authToken = try container.decodeIfPresent(String.self, forKey: .authToken) ?? ""
         customEnvEntries = try container.decodeIfPresent([CustomEnvEntry].self, forKey: .customEnvEntries) ?? []
     }
 
@@ -62,6 +67,7 @@ struct ClaudeProfile: Identifiable, Codable, Equatable {
         try container.encode(baseURL, forKey: .baseURL)
         try container.encode(model, forKey: .model)
         try container.encode(apiKey, forKey: .apiKey)
+        try container.encode(authToken, forKey: .authToken)
         try container.encode(customEnvEntries, forKey: .customEnvEntries)
     }
 }
