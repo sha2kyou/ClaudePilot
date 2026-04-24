@@ -23,11 +23,15 @@
 
 "menu_bar.empty.no_profiles" = "暂无配置";
 "menu_bar.action.edit_profiles" = "编辑配置…";
+"menu_bar.action.edit_settings_path" = "编辑 settings.json 路径…";
 "menu_bar.action.launch_at_login" = "开机启动";
+"menu_bar.language.title" = "语言";
 "menu_bar.action.quit" = "退出";
 
+"language.follow_system" = "跟随系统";
+
 "profile_store.status.current_profile_not_found" = "未找到当前配置";
-"profile_store.status.settings_updated" = "已更新 ~/.claude/settings.json";
+"profile_store.status.settings_updated_at_path" = "已更新 %@";
 "profile_store.status.apply_failed" = "应用失败: %@";
 "profile_store.status.save_failed" = "保存配置失败: %@";
 "profile_store.error.settings_not_json_object" = "settings.json 不是 JSON 对象";

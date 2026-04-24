@@ -23,11 +23,15 @@
 
 "menu_bar.empty.no_profiles" = "No profiles";
 "menu_bar.action.edit_profiles" = "Edit Profiles...";
+"menu_bar.action.edit_settings_path" = "Edit settings.json Path...";
 "menu_bar.action.launch_at_login" = "Launch at Login";
+"menu_bar.language.title" = "Language";
 "menu_bar.action.quit" = "Quit";
 
+"language.follow_system" = "Follow System";
+
 "profile_store.status.current_profile_not_found" = "Current profile not found";
-"profile_store.status.settings_updated" = "Updated ~/.claude/settings.json";
+"profile_store.status.settings_updated_at_path" = "Updated %@";
 "profile_store.status.apply_failed" = "Apply failed: %@";
 "profile_store.status.save_failed" = "Failed to save profiles: %@";
 "profile_store.error.settings_not_json_object" = "settings.json is not a JSON object";

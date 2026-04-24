@@ -7,6 +7,7 @@ final class ProfileStore: ObservableObject {
     @Published var profiles: [ClaudeProfile] = []
     @Published var currentProfileID: UUID?
     @Published var statusMessage: String = ""
+    @Published var customClaudeSettingsFilePath: String?
     var userRelativeClaudeSettingsPath: String {
         let settingsFile = claudeSettingsFileURL().standardizedFileURL.path
         let home = realUserHomeDirectory().standardizedFileURL.path
@@ -22,6 +23,7 @@ final class ProfileStore: ObservableObject {
     private struct StoredState: Codable {
         var profiles: [ClaudeProfile]
         var currentProfileID: UUID?
+        var customClaudeSettingsFilePath: String?
     }
 
     private let fileManager = FileManager.default
@@ -75,7 +77,10 @@ final class ProfileStore: ObservableObject {
 
         do {
             try writeClaudeSettingsFile(profile: profile, removing: [])
-            statusMessage = String(localized: "profile_store.status.settings_updated")
+            statusMessage = String(
+                format: String(localized: "profile_store.status.settings_updated_at_path"),
+                userRelativeClaudeSettingsPath
+            )
             persist()
         } catch {
             statusMessage = String(format: String(localized: "profile_store.status.apply_failed"), error.localizedDescription)
@@ -93,7 +98,10 @@ final class ProfileStore: ObservableObject {
         let previousManagedKeyPaths = managedKeyPaths(for: previousProfile)
         do {
             try writeClaudeSettingsFile(profile: nextProfile, removing: previousManagedKeyPaths)
-            statusMessage = String(localized: "profile_store.status.settings_updated")
+            statusMessage = String(
+                format: String(localized: "profile_store.status.settings_updated_at_path"),
+                userRelativeClaudeSettingsPath
+            )
             persist()
         } catch {
             statusMessage = String(format: String(localized: "profile_store.status.apply_failed"), error.localizedDescription)
@@ -104,8 +112,19 @@ final class ProfileStore: ObservableObject {
         statusMessage = ""
     }
 
+    func updateClaudeSettingsFilePath(_ url: URL) {
+        let standardized = url.standardizedFileURL.path
+        let defaultPath = defaultClaudeSettingsFileURL().standardizedFileURL.path
+        customClaudeSettingsFilePath = (standardized == defaultPath) ? nil : standardized
+        persist()
+    }
+
     private func persist() {
-        let payload = StoredState(profiles: profiles, currentProfileID: currentProfileID)
+        let payload = StoredState(
+            profiles: profiles,
+            currentProfileID: currentProfileID,
+            customClaudeSettingsFilePath: customClaudeSettingsFilePath
+        )
         guard let data = try? JSONEncoder().encode(payload) else {
             return
         }
@@ -124,6 +143,7 @@ final class ProfileStore: ObservableObject {
             let data = try Data(contentsOf: stateFileURL())
             let payload = try JSONDecoder().decode(StoredState.self, from: data)
             profiles = payload.profiles
+            customClaudeSettingsFilePath = payload.customClaudeSettingsFilePath
             if let id = payload.currentProfileID,
                payload.profiles.contains(where: { $0.id == id }) {
                 currentProfileID = id
@@ -133,6 +153,7 @@ final class ProfileStore: ObservableObject {
         } catch {
             profiles = []
             currentProfileID = nil
+            customClaudeSettingsFilePath = nil
         }
     }
 
@@ -286,6 +307,15 @@ final class ProfileStore: ObservableObject {
     }
 
     private func claudeSettingsFileURL() -> URL {
+        if let rawPath = customClaudeSettingsFilePath?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !rawPath.isEmpty {
+            let expandedPath = (rawPath as NSString).expandingTildeInPath
+            return URL(fileURLWithPath: expandedPath, isDirectory: false)
+        }
+        return defaultClaudeSettingsFileURL()
+    }
+
+    private func defaultClaudeSettingsFileURL() -> URL {
         realUserHomeDirectory()
             .appendingPathComponent(".claude", isDirectory: true)
             .appendingPathComponent("settings.json", isDirectory: false)

@@ -95,6 +95,11 @@ final class ClaudePilotAppDelegate: NSObject, NSApplicationDelegate, NSWindowDel
 struct ClaudePilotApp: App {
     @NSApplicationDelegateAdaptor(ClaudePilotAppDelegate.self) var appDelegate
     @StateObject private var profileStore = SharedProfileStore.instance
+    private let languageManager = LanguageManager.shared
+
+    init() {
+        _ = languageManager
+    }
 
     var body: some Scene {
         MenuBarExtra("ClaudePilot", systemImage: "switch.2") {
