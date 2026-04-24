@@ -63,15 +63,13 @@ struct MenuBarView: View {
 
             Divider()
 
-            Menu("menu_bar.language.title") {
-                Picker("menu_bar.language.title", selection: $languageManager.currentLanguage) {
-                    ForEach(LanguageManager.Language.allCases, id: \.self) { language in
-                        Text(language.displayName).tag(language)
-                    }
+            Picker("menu_bar.language.title", selection: $languageManager.currentLanguage) {
+                ForEach(LanguageManager.Language.allCases, id: \.self) { language in
+                    Text(language.displayName).tag(language)
                 }
-                .onChange(of: languageManager.currentLanguage) { _, _ in
-                    restartApp()
-                }
+            }
+            .onChange(of: languageManager.currentLanguage) { _, _ in
+                restartApp()
             }
 
             Divider()
