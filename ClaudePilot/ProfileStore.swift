@@ -89,7 +89,6 @@ final class ProfileStore: ObservableObject {
 
     func switchProfileAndApply(profileID: UUID) {
         let previousProfile = profiles.first(where: { $0.id == currentProfileID })
-        currentProfileID = profileID
         guard let nextProfile = profiles.first(where: { $0.id == profileID }) else {
             statusMessage = String(localized: "profile_store.status.current_profile_not_found")
             return
@@ -98,6 +97,7 @@ final class ProfileStore: ObservableObject {
         let previousManagedKeyPaths = managedKeyPaths(for: previousProfile)
         do {
             try writeClaudeSettingsFile(profile: nextProfile, removing: previousManagedKeyPaths)
+            currentProfileID = profileID
             statusMessage = String(
                 format: String(localized: "profile_store.status.settings_updated_at_path"),
                 userRelativeClaudeSettingsPath

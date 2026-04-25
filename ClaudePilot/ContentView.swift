@@ -193,9 +193,10 @@ struct ContentView: View {
         customEnvEntries = profile.customEnvEntries
     }
 
-    private func saveSelectedProfile() {
+    @discardableResult
+    private func saveSelectedProfile() -> Bool {
         guard let id = selectedProfileID else {
-            return
+            return false
         }
 
         let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -206,7 +207,7 @@ struct ContentView: View {
         let normalizedCustomEntries = normalizedEntries(customEnvEntries)
 
         guard !normalizedName.isEmpty else {
-            return
+            return false
         }
 
         let updated = ClaudeProfile(
@@ -219,6 +220,7 @@ struct ContentView: View {
             customEnvEntries: normalizedCustomEntries
         )
         profileStore.updateProfile(updated)
+        return true
     }
 
     private func deletePendingProfile() {
@@ -254,7 +256,12 @@ struct ContentView: View {
             return
         }
 
-        saveSelectedProfile()
+        guard saveSelectedProfile() else {
+            return
+        }
+        if id == profileStore.currentProfileID {
+            profileStore.applyCurrentProfile()
+        }
     }
 
     private func addProfileFromList() {
