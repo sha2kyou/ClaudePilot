@@ -39,7 +39,7 @@ struct AboutView: View {
             .padding(.top, 28)
             .padding(.bottom, 24)
 
-            Text("© 2026 Zhuoming Liu. \(String(localized: "about.copyright"))")
+            Text("© 2026 ØYNN. \(String(localized: "about.copyright"))")
                 .font(.system(size: 11, weight: .regular))
                 .foregroundColor(.secondary.opacity(0.7))
                 .frame(maxWidth: .infinity, alignment: .center)
