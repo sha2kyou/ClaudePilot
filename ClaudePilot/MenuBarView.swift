@@ -6,6 +6,7 @@ struct MenuBarView: View {
     @EnvironmentObject private var profileStore: ProfileStore
     @ObservedObject private var languageManager = LanguageManager.shared
     @State private var launchAtLoginEnabled = LaunchAtLoginManager.isEnabled()
+    @State private var showingAbout = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -42,6 +43,10 @@ struct MenuBarView: View {
                 NotificationCenter.default.post(name: .openMainWindowRequested, object: nil)
             }
 
+            Button("menu_bar.action.triggers") {
+                NotificationCenter.default.post(name: .openTriggerWindowRequested, object: nil)
+            }
+
             Button("menu_bar.action.edit_settings_path") {
                 editSettingsPath()
             }
@@ -73,6 +78,10 @@ struct MenuBarView: View {
             }
 
             Divider()
+
+            Button("about.menu_item") {
+                NotificationCenter.default.post(name: .showAboutWindowRequested, object: nil)
+            }
 
             Button("menu_bar.action.quit") {
                 NSApplication.shared.terminate(nil)

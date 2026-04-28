@@ -23,12 +23,44 @@
 
 "menu_bar.empty.no_profiles" = "暂无配置";
 "menu_bar.action.edit_profiles" = "编辑配置…";
+"menu_bar.action.triggers" = "触发器…";
 "menu_bar.action.edit_settings_path" = "编辑 settings.json 路径…";
 "menu_bar.action.launch_at_login" = "开机启动";
 "menu_bar.language.title" = "语言";
 "menu_bar.action.quit" = "退出";
 
 "language.follow_system" = "跟随系统";
+
+"trigger.navigation.title" = "触发器";
+"trigger.empty.select" = "请选择左侧触发器";
+"trigger.default_name" = "新触发器";
+"trigger.help.add" = "添加触发器";
+"trigger.help.delete" = "删除触发器";
+"trigger.dialog.delete.title" = "确认删除该触发器？";
+"trigger.profile.unknown" = "未知配置";
+"trigger.warning.profile_deleted" = "目标配置已被删除";
+"trigger.warning.location_denied" = "位置权限未授权，WiFi 触发器不可用";
+"trigger.warning.location_denied.title" = "需要位置权限";
+"trigger.warning.location_denied.detail" = "macOS 要求位置权限才能读取当前 WiFi 网络名称，未授权时 WiFi 触发器不会生效。";
+"trigger.warning.location_denied.open_settings" = "打开设置";
+"trigger.condition.wifi_connected" = "连接到 \"%@\"";
+"trigger.condition.type.time" = "时间";
+"trigger.editor.field.name" = "名称";
+"trigger.editor.field.enabled" = "启用";
+"trigger.editor.section.condition" = "触发条件";
+"trigger.editor.field.condition_type" = "类型";
+"trigger.editor.field.ssid" = "SSID";
+"trigger.editor.field.time" = "时间";
+"trigger.editor.section.action" = "触发动作";
+"trigger.editor.field.target_profile" = "切换到";
+"trigger.editor.profile.placeholder" = "选择配置";
+
+
+"about.menu_item" = "关于 ClaudePilot";
+"about.window_title" = "关于 ClaudePilot";
+"about.version" = "版本";
+"about.build" = "构建号";
+"about.copyright" = "保留所有权利。";
 
 "profile_store.status.current_profile_not_found" = "未找到当前配置";
 "profile_store.status.settings_updated_at_path" = "已更新 %@";

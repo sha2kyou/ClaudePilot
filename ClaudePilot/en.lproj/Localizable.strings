@@ -23,12 +23,44 @@
 
 "menu_bar.empty.no_profiles" = "No profiles";
 "menu_bar.action.edit_profiles" = "Edit Profiles...";
+"menu_bar.action.triggers" = "Triggers...";
 "menu_bar.action.edit_settings_path" = "Edit settings.json Path...";
 "menu_bar.action.launch_at_login" = "Launch at Login";
 "menu_bar.language.title" = "Language";
 "menu_bar.action.quit" = "Quit";
 
 "language.follow_system" = "Follow System";
+
+"trigger.navigation.title" = "Triggers";
+"trigger.empty.select" = "Please select a trigger from the sidebar";
+"trigger.default_name" = "New Trigger";
+"trigger.help.add" = "Add trigger";
+"trigger.help.delete" = "Delete trigger";
+"trigger.dialog.delete.title" = "Delete this trigger?";
+"trigger.profile.unknown" = "Unknown Profile";
+"trigger.warning.profile_deleted" = "The target profile has been deleted";
+"trigger.warning.location_denied" = "Location permission denied — WiFi trigger inactive";
+"trigger.warning.location_denied.title" = "Location Permission Required";
+"trigger.warning.location_denied.detail" = "macOS requires location permission to read the current WiFi network name. Without it, WiFi triggers will not work.";
+"trigger.warning.location_denied.open_settings" = "Open Settings";
+"trigger.condition.wifi_connected" = "Connected to \"%@\"";
+"trigger.condition.type.time" = "Time";
+"trigger.editor.field.name" = "Name";
+"trigger.editor.field.enabled" = "Enabled";
+"trigger.editor.section.condition" = "Condition";
+"trigger.editor.field.condition_type" = "Type";
+"trigger.editor.field.ssid" = "SSID";
+"trigger.editor.field.time" = "Time";
+"trigger.editor.section.action" = "Action";
+"trigger.editor.field.target_profile" = "Switch to";
+"trigger.editor.profile.placeholder" = "Select a profile";
+
+
+"about.menu_item" = "About ClaudePilot";
+"about.window_title" = "About ClaudePilot";
+"about.version" = "Version";
+"about.build" = "Build";
+"about.copyright" = "All rights reserved.";
 
 "profile_store.status.current_profile_not_found" = "Current profile not found";
 "profile_store.status.settings_updated_at_path" = "Updated %@";

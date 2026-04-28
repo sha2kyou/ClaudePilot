@@ -15,19 +15,40 @@ enum SharedProfileStore {
 
 extension Notification.Name {
     static let openMainWindowRequested = Notification.Name("openMainWindowRequested")
+    static let openTriggerWindowRequested = Notification.Name("openTriggerWindowRequested")
+    static let showAboutWindowRequested = Notification.Name("showAboutWindowRequested")
 }
 
 @MainActor
 final class ClaudePilotAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private static let mainWindowIdentifier = NSUserInterfaceItemIdentifier("claudepilot.main-window")
+    private static let triggerWindowIdentifier = NSUserInterfaceItemIdentifier("claudepilot.trigger-window")
     private var mainWindow: NSWindow?
+    private var triggerWindow: NSWindow?
+    private var aboutWindow: NSWindow?
     private let profileStore = SharedProfileStore.instance
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // 初始化监控器（单例，启动即开始监听）
+        _ = WiFiMonitor.shared
+        _ = ScheduleMonitor.shared
+
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handleOpenMainWindowRequested),
             name: .openMainWindowRequested,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleOpenTriggerWindowRequested),
+            name: .openTriggerWindowRequested,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleShowAboutWindowRequested),
+            name: .showAboutWindowRequested,
             object: nil
         )
     }
@@ -36,8 +57,16 @@ final class ClaudePilotAppDelegate: NSObject, NSApplicationDelegate, NSWindowDel
         showMainWindow()
     }
 
+    @objc private func handleOpenTriggerWindowRequested() {
+        showTriggerWindow()
+    }
+
+    @objc private func handleShowAboutWindowRequested() {
+        showAboutWindow()
+    }
+
     func showMainWindow() {
-        if let existing = existingMainWindow() {
+        if let existing = existingWindow(identifier: Self.mainWindowIdentifier) {
             mainWindow = existing
             existing.makeKeyAndOrderFront(nil)
             NSApplication.shared.activate(ignoringOtherApps: true)
@@ -78,15 +107,83 @@ final class ClaudePilotAppDelegate: NSObject, NSApplicationDelegate, NSWindowDel
         mainWindow = window
     }
 
-    func windowWillClose(_ notification: Notification) {
-        guard let window = notification.object as? NSWindow, window === mainWindow else {
+    func showTriggerWindow() {
+        if let existing = existingWindow(identifier: Self.triggerWindowIdentifier) {
+            triggerWindow = existing
+            existing.makeKeyAndOrderFront(nil)
+            NSApplication.shared.activate(ignoringOtherApps: true)
             return
         }
-        mainWindow = nil
+
+        if let window = triggerWindow {
+            window.makeKeyAndOrderFront(nil)
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let rootView = TriggerListView()
+            .environmentObject(profileStore)
+            .frame(height: 500)
+        let hostingController = NSHostingController(rootView: rootView)
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 750, height: 500),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentViewController = hostingController
+        window.identifier = Self.triggerWindowIdentifier
+        window.title = ""
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.toolbarStyle = .unified
+        window.setContentSize(NSSize(width: 750, height: 500))
+        window.minSize = NSSize(width: 750, height: 500)
+        window.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: 500)
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        triggerWindow = window
     }
 
-    private func existingMainWindow() -> NSWindow? {
-        NSApplication.shared.windows.first(where: { $0.identifier == Self.mainWindowIdentifier })
+    func showAboutWindow() {
+        if let window = aboutWindow, window.isVisible {
+            window.makeKeyAndOrderFront(nil)
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            return
+        }
+        let hosting = NSHostingController(rootView: AboutView())
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 360, height: 200),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentViewController = hosting
+        window.title = NSLocalizedString("about.window_title", comment: "")
+        window.isReleasedWhenClosed = false
+        hosting.view.layoutSubtreeIfNeeded()
+        let h = hosting.view.fittingSize.height
+        window.setContentSize(NSSize(width: 360, height: max(100, h)))
+        window.center()
+        window.delegate = self
+        aboutWindow = window
+        window.makeKeyAndOrderFront(nil)
+        NSApplication.shared.activate(ignoringOtherApps: true)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        if window === mainWindow { mainWindow = nil }
+        if window === triggerWindow { triggerWindow = nil }
+        if window === aboutWindow { aboutWindow = nil }
+    }
+
+    private func existingWindow(identifier: NSUserInterfaceItemIdentifier) -> NSWindow? {
+        NSApplication.shared.windows.first(where: { $0.identifier == identifier })
     }
 }
 
@@ -110,6 +207,13 @@ struct ClaudePilotApp: App {
 
         Settings {
             EmptyView()
+        }
+        .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button(NSLocalizedString("about.menu_item", comment: "")) {
+                    appDelegate.showAboutWindow()
+                }
+            }
         }
     }
 }
