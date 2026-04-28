@@ -138,6 +138,11 @@ final class TriggerStore: ObservableObject {
                 print("[TriggerStore] trigger '\(trigger.name)' debounced, skip")
                 continue
             }
+            if profileStore.currentProfileID == trigger.targetProfileID {
+                print("[TriggerStore] trigger '\(trigger.name)' target equals current profile, skip")
+                lastFiredAt[trigger.id] = now
+                continue
+            }
             print("[TriggerStore] firing trigger '\(trigger.name)' -> profileID=\(trigger.targetProfileID)")
             lastFiredAt[trigger.id] = now
             profileStore.switchProfileAndApply(profileID: trigger.targetProfileID)
