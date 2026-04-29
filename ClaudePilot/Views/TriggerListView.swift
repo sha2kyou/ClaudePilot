@@ -10,7 +10,6 @@ struct TriggerListView: View {
     @State private var selectedTriggerID: UUID?
     @State private var pendingDeleteID: UUID?
     @State private var confirmingDelete = false
-    @State private var showTriggerLog = false
 
     var body: some View {
         NavigationSplitView {
@@ -19,14 +18,8 @@ struct TriggerListView: View {
                     ForEach(triggerStore.triggers) { trigger in
                         HStack(spacing: 8) {
                             VStack(alignment: .leading, spacing: 4) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: conditionIconName(for: trigger))
-                                        .font(.caption2)
-                                        .fontWeight(.regular)
-                                        .foregroundStyle(.secondary)
-                                    Text(trigger.name)
-                                        .lineLimit(1)
-                                }
+                                Text(trigger.name)
+                                    .lineLimit(1)
                                 HStack(spacing: 6) {
                                     Text(conditionSummary(trigger))
                                         .font(.caption)
@@ -65,7 +58,7 @@ struct TriggerListView: View {
             .toolbar {
                 ToolbarItem(placement: .navigation) {
                     Button {
-                        showTriggerLog = true
+                        NotificationCenter.default.post(name: .openTriggerLogWindowRequested, object: nil)
                     } label: {
                         Image(systemName: "doc.text")
                     }
@@ -105,9 +98,6 @@ struct TriggerListView: View {
                 }
             }
             Button(String(localized: "content.action.cancel"), role: .cancel) {}
-        }
-        .sheet(isPresented: $showTriggerLog) {
-            TriggerLogSheet()
         }
         .onAppear {
             ensureSelection()
@@ -151,15 +141,6 @@ struct TriggerListView: View {
         return "\(conditionText) \(arrow) \(profileName)"
     }
 
-    private func conditionIconName(for trigger: Trigger) -> String {
-        switch trigger.condition {
-        case .wifiConnected:
-            return "wifi"
-        case .dailyTime:
-            return "clock"
-        }
-    }
-
     private func ensureSelection() {
         if let selectedTriggerID,
            triggerStore.triggers.contains(where: { $0.id == selectedTriggerID }) {
@@ -169,9 +150,9 @@ struct TriggerListView: View {
     }
 }
 
-private struct TriggerLogSheet: View {
+struct TriggerLogView: View {
     @ObservedObject private var triggerStore = TriggerStore.shared
-    @Environment(\.dismiss) private var dismiss
+    @State private var confirmingClearLog = false
 
     var body: some View {
         NavigationStack {
@@ -188,11 +169,32 @@ private struct TriggerLogSheet: View {
                                         .font(.caption.monospacedDigit())
                                         .foregroundStyle(.tertiary)
                                         .frame(width: 64, alignment: .leading)
-                                    Text(entry.message)
-                                        .font(.callout)
-                                        .foregroundStyle(.primary)
-                                        .textSelection(.enabled)
+                                    if let triggerName = entry.triggerName,
+                                       let conditionSummary = entry.conditionSummary {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            HStack(spacing: 6) {
+                                                Text(triggerName)
+                                                    .font(.caption)
+                                                    .foregroundStyle(.primary)
+                                                    .lineLimit(1)
+                                                Text(logResultText(entry.result, errorDetail: entry.errorDetail))
+                                                    .font(.caption)
+                                                    .foregroundStyle(.primary)
+                                                    .lineLimit(1)
+                                            }
+                                            Text(conditionSummary)
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                                .lineLimit(1)
+                                        }
                                         .frame(maxWidth: .infinity, alignment: .leading)
+                                    } else {
+                                        Text(entry.message)
+                                            .font(.callout)
+                                            .foregroundStyle(.primary)
+                                            .textSelection(.enabled)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
                                 }
                                 .padding(.vertical, 2)
                             }
@@ -204,20 +206,47 @@ private struct TriggerLogSheet: View {
             .navigationTitle("trigger.log.title")
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "trigger.log.done")) {
-                        dismiss()
-                    }
-                }
                 ToolbarItem(placement: .primaryAction) {
-                    Button(String(localized: "trigger.log.clear")) {
-                        triggerStore.clearTriggerLog()
+                    Button {
+                        confirmingClearLog = true
+                    } label: {
+                        Image(systemName: "paintbrush")
                     }
+                    .help(String(localized: "trigger.log.clear"))
                     .disabled(triggerStore.triggerLogEntries.isEmpty)
                 }
             }
         }
         .frame(minWidth: 560, minHeight: 360)
+        .confirmationDialog(
+            String(localized: "trigger.log.clear_confirm.title"),
+            isPresented: $confirmingClearLog,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "trigger.log.clear"), role: .destructive) {
+                triggerStore.clearTriggerLog()
+            }
+            Button(String(localized: "content.action.cancel"), role: .cancel) {}
+        }
+    }
+
+    private func logResultText(_ result: TriggerLogResult?, errorDetail: String?) -> String {
+        switch result {
+        case .switched:
+            return String(localized: "trigger.log.result.switched")
+        case .skipped:
+            return String(localized: "trigger.log.result.skipped")
+        case .failed:
+            if let errorDetail, !errorDetail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return String(
+                    format: String(localized: "trigger.log.result.failed_with_reason"),
+                    errorDetail
+                )
+            }
+            return String(localized: "trigger.log.result.failed")
+        case nil:
+            return String(localized: "trigger.log.result.unknown")
+        }
     }
 }
 
@@ -242,13 +271,6 @@ struct TriggerDetailView: View {
             switch self {
             case .wifi: return "WiFi"
             case .time: return String(localized: "trigger.condition.type.time")
-            }
-        }
-
-        var iconName: String {
-            switch self {
-            case .wifi: return "wifi"
-            case .time: return "clock"
             }
         }
     }
@@ -306,7 +328,7 @@ struct TriggerDetailView: View {
                 LabeledContent("trigger.editor.field.condition_type") {
                     Picker("", selection: $conditionType) {
                         ForEach(ConditionType.allCases, id: \.self) { type in
-                            Label(type.localizedName, systemImage: type.iconName).tag(type)
+                            Text(type.localizedName).tag(type)
                         }
                     }
                     .pickerStyle(.menu)

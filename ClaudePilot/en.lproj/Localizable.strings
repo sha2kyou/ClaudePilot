@@ -22,9 +22,10 @@
 "content.custom.header.value" = "Value";
 
 "menu_bar.empty.no_profiles" = "No profiles";
-"menu_bar.action.edit_profiles" = "Edit Profiles...";
-"menu_bar.action.triggers" = "Triggers...";
-"menu_bar.action.edit_settings_path" = "Edit settings.json Path...";
+"menu_bar.action.edit_profiles" = "Profiles";
+"menu_bar.action.triggers" = "Triggers";
+"menu_bar.action.trigger_logs" = "Execution Log";
+"menu_bar.action.edit_settings_path" = "settings.json Path";
 "menu_bar.action.launch_at_login" = "Launch at Login";
 "menu_bar.language.title" = "Language";
 "menu_bar.action.quit" = "Quit";
@@ -34,11 +35,12 @@
 "trigger.navigation.title" = "Triggers";
 "trigger.default_name" = "New Trigger";
 "trigger.help.add" = "Add trigger";
-"trigger.help.log" = "Trigger log";
+"trigger.help.log" = "Execution log";
 "trigger.help.delete" = "Delete trigger";
-"trigger.log.title" = "Trigger Log";
+"trigger.log.title" = "Execution Log";
 "trigger.log.empty" = "No entries yet";
 "trigger.log.clear" = "Clear";
+"trigger.log.clear_confirm.title" = "Clear execution log?";
 "trigger.log.done" = "Done";
 "trigger.log.wifi.fired" = "WiFi \"%@\" triggered \"%@\", action: switched to \"%@\"";
 "trigger.log.wifi.same_profile" = "WiFi \"%@\" triggered \"%@\", action: skipped";
@@ -47,6 +49,13 @@
 "trigger.log.time.same_profile" = "Time %02d:%02d triggered \"%@\", action: skipped";
 "trigger.log.time.failed" = "Time %02d:%02d triggered \"%@\", action: failed to switch to \"%@\" (%@)";
 "trigger.log.error.unknown" = "Unknown error";
+"trigger.log.result.switched" = "switched";
+"trigger.log.result.skipped" = "skipped";
+"trigger.log.result.failed" = "failed";
+"trigger.log.result.failed_with_reason" = "failed (%@)";
+"trigger.log.result.unknown" = "unknown";
+"trigger.log.manual.trigger_name" = "Manual switch";
+"trigger.log.manual.summary" = "Manual → %@";
 "trigger.dialog.delete.title" = "Delete this trigger?";
 "trigger.profile.unknown" = "Unknown Profile";
 "trigger.warning.profile_deleted" = "The target profile has been deleted";

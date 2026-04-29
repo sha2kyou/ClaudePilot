@@ -53,6 +53,12 @@ struct MenuBarView: View {
 
             Divider()
 
+            Button("menu_bar.action.trigger_logs") {
+                NotificationCenter.default.post(name: .openTriggerLogWindowRequested, object: nil)
+            }
+
+            Divider()
+
             Button {
                 toggleLaunchAtLogin()
             } label: {
@@ -77,8 +83,6 @@ struct MenuBarView: View {
                 restartApp()
             }
 
-            Divider()
-
             Button("about.menu_item") {
                 NotificationCenter.default.post(name: .showAboutWindowRequested, object: nil)
             }
@@ -93,7 +97,30 @@ struct MenuBarView: View {
     }
 
     private func selectAndApply(profileID: UUID) {
+        guard let targetProfile = profileStore.profiles.first(where: { $0.id == profileID }) else {
+            return
+        }
+        let wasCurrent = profileStore.currentProfileID == profileID
         profileStore.switchProfileAndApply(profileID: profileID)
+        if wasCurrent {
+            TriggerStore.shared.appendManualSwitchLog(
+                targetProfileName: targetProfile.name,
+                result: .skipped
+            )
+            return
+        }
+        if profileStore.currentProfileID == profileID {
+            TriggerStore.shared.appendManualSwitchLog(
+                targetProfileName: targetProfile.name,
+                result: .switched
+            )
+        } else {
+            TriggerStore.shared.appendManualSwitchLog(
+                targetProfileName: targetProfile.name,
+                result: .failed,
+                errorDetail: profileStore.statusMessage
+            )
+        }
     }
 
     private func toggleLaunchAtLogin() {

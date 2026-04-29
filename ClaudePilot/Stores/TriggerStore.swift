@@ -73,6 +73,42 @@ struct TriggerLogEntry: Identifiable, Codable, Equatable {
     let id: UUID
     let date: Date
     let message: String
+    let triggerName: String?
+    let conditionSummary: String?
+    let conditionType: TriggerLogConditionType?
+    let result: TriggerLogResult?
+    let errorDetail: String?
+
+    init(
+        id: UUID = UUID(),
+        date: Date = Date(),
+        message: String,
+        triggerName: String? = nil,
+        conditionSummary: String? = nil,
+        conditionType: TriggerLogConditionType? = nil,
+        result: TriggerLogResult? = nil,
+        errorDetail: String? = nil
+    ) {
+        self.id = id
+        self.date = date
+        self.message = message
+        self.triggerName = triggerName
+        self.conditionSummary = conditionSummary
+        self.conditionType = conditionType
+        self.result = result
+        self.errorDetail = errorDetail
+    }
+}
+
+enum TriggerLogConditionType: String, Codable, Equatable {
+    case wifi
+    case time
+}
+
+enum TriggerLogResult: String, Codable, Equatable {
+    case switched
+    case skipped
+    case failed
 }
 
 @MainActor
@@ -85,7 +121,7 @@ final class TriggerStore: ObservableObject {
     private let profileStore = SharedProfileStore.instance
     private let fileManager = FileManager.default
 
-    private let maxTriggerLogEntries = 50
+    private let maxTriggerLogEntries = 25
     
     private enum TriggerSource {
         case wifi(ssid: String)
@@ -140,8 +176,45 @@ final class TriggerStore: ObservableObject {
         fire(triggers: matched, source: .time(hour: hour, minute: minute))
     }
 
-    private func appendTriggerLog(_ message: String) {
-        let entry = TriggerLogEntry(id: UUID(), date: Date(), message: message)
+    func appendManualSwitchLog(
+        targetProfileName: String,
+        result: TriggerLogResult,
+        errorDetail: String? = nil
+    ) {
+        let normalizedError: String?
+        if result == .failed {
+            normalizedError = normalizedErrorDetail(errorDetail ?? "")
+        } else {
+            normalizedError = nil
+        }
+        appendTriggerLog(
+            triggerName: String(localized: "trigger.log.manual.trigger_name"),
+            conditionSummary: String(
+                format: String(localized: "trigger.log.manual.summary"),
+                targetProfileName
+            ),
+            conditionType: nil,
+            result: result,
+            errorDetail: normalizedError
+        )
+    }
+
+    private func appendTriggerLog(
+        _ legacyMessage: String = "",
+        triggerName: String? = nil,
+        conditionSummary: String? = nil,
+        conditionType: TriggerLogConditionType? = nil,
+        result: TriggerLogResult? = nil,
+        errorDetail: String? = nil
+    ) {
+        let entry = TriggerLogEntry(
+            message: legacyMessage,
+            triggerName: triggerName,
+            conditionSummary: conditionSummary,
+            conditionType: conditionType,
+            result: result,
+            errorDetail: errorDetail
+        )
         triggerLogEntries.insert(entry, at: 0)
         if triggerLogEntries.count > maxTriggerLogEntries {
             triggerLogEntries.removeLast(triggerLogEntries.count - maxTriggerLogEntries)
@@ -166,95 +239,60 @@ final class TriggerStore: ObservableObject {
                 continue
             }
             let profileName = targetProfileDisplayName(for: trigger)
+            let summaryMeta = conditionSummaryMeta(source: source, profileName: profileName)
             profileStore.switchProfileAndApply(profileID: trigger.targetProfileID)
             if profileStore.currentProfileID == trigger.targetProfileID {
-                appendTriggerLog(messageForFired(source: source, triggerName: trigger.name, profileName: profileName))
+                appendTriggerLog(
+                    triggerName: trigger.name,
+                    conditionSummary: summaryMeta.summary,
+                    conditionType: summaryMeta.type,
+                    result: .switched
+                )
                 didFire = true
                 break
             }
 
             appendTriggerLog(
-                messageForFailed(
-                    source: source,
-                    triggerName: trigger.name,
-                    profileName: profileName,
-                    errorMessage: profileStore.statusMessage
-                )
+                triggerName: trigger.name,
+                conditionSummary: summaryMeta.summary,
+                conditionType: summaryMeta.type,
+                result: .failed,
+                errorDetail: normalizedErrorDetail(profileStore.statusMessage)
             )
             didFire = true
             break
         }
         
         if !didFire, let trigger = firstSameProfile {
-            appendTriggerLog(messageForSameProfile(source: source, triggerName: trigger.name))
-        }
-    }
-    
-    private func messageForFired(source: TriggerSource, triggerName: String, profileName: String) -> String {
-        switch source {
-        case .wifi(let ssid):
-            return String(
-                format: String(localized: "trigger.log.wifi.fired"),
-                ssid,
-                triggerName,
-                profileName
-            )
-        case .time(let hour, let minute):
-            return String(
-                format: String(localized: "trigger.log.time.fired"),
-                hour,
-                minute,
-                triggerName,
-                profileName
-            )
-        }
-    }
-    
-    private func messageForSameProfile(source: TriggerSource, triggerName: String) -> String {
-        switch source {
-        case .wifi(let ssid):
-            return String(
-                format: String(localized: "trigger.log.wifi.same_profile"),
-                ssid,
-                triggerName
-            )
-        case .time(let hour, let minute):
-            return String(
-                format: String(localized: "trigger.log.time.same_profile"),
-                hour,
-                minute,
-                triggerName
+            let profileName = targetProfileDisplayName(for: trigger)
+            let summaryMeta = conditionSummaryMeta(source: source, profileName: profileName)
+            appendTriggerLog(
+                triggerName: trigger.name,
+                conditionSummary: summaryMeta.summary,
+                conditionType: summaryMeta.type,
+                result: .skipped
             )
         }
     }
 
-    private func messageForFailed(
+    private func conditionSummaryMeta(
         source: TriggerSource,
-        triggerName: String,
-        profileName: String,
-        errorMessage: String
-    ) -> String {
-        let fallbackError = String(localized: "trigger.log.error.unknown")
-        let detail = errorMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? fallbackError : errorMessage
+        profileName: String
+    ) -> (summary: String, type: TriggerLogConditionType) {
         switch source {
         case .wifi(let ssid):
-            return String(
-                format: String(localized: "trigger.log.wifi.failed"),
-                ssid,
-                triggerName,
-                profileName,
-                detail
-            )
+            return ("\(ssid) → \(profileName)", .wifi)
         case .time(let hour, let minute):
-            return String(
-                format: String(localized: "trigger.log.time.failed"),
-                hour,
-                minute,
-                triggerName,
-                profileName,
-                detail
-            )
+            return (String(format: "%02d:%02d → %@", hour, minute, profileName), .time)
         }
+    }
+
+    private func normalizedErrorDetail(_ raw: String) -> String {
+        let detail = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if detail.isEmpty {
+            return String(localized: "trigger.log.error.unknown")
+        }
+        return detail
     }
     
     private func persist() {

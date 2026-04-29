@@ -16,6 +16,7 @@ enum SharedProfileStore {
 extension Notification.Name {
     static let openMainWindowRequested = Notification.Name("openMainWindowRequested")
     static let openTriggerWindowRequested = Notification.Name("openTriggerWindowRequested")
+    static let openTriggerLogWindowRequested = Notification.Name("openTriggerLogWindowRequested")
     static let showAboutWindowRequested = Notification.Name("showAboutWindowRequested")
 }
 
@@ -23,8 +24,10 @@ extension Notification.Name {
 final class ClaudePilotAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private static let mainWindowIdentifier = NSUserInterfaceItemIdentifier("claudepilot.main-window")
     private static let triggerWindowIdentifier = NSUserInterfaceItemIdentifier("claudepilot.trigger-window")
+    private static let triggerLogWindowIdentifier = NSUserInterfaceItemIdentifier("claudepilot.trigger-log-window")
     private var mainWindow: NSWindow?
     private var triggerWindow: NSWindow?
+    private var triggerLogWindow: NSWindow?
     private var aboutWindow: NSWindow?
     private let profileStore = SharedProfileStore.instance
 
@@ -47,6 +50,12 @@ final class ClaudePilotAppDelegate: NSObject, NSApplicationDelegate, NSWindowDel
         )
         NotificationCenter.default.addObserver(
             self,
+            selector: #selector(handleOpenTriggerLogWindowRequested),
+            name: .openTriggerLogWindowRequested,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
             selector: #selector(handleShowAboutWindowRequested),
             name: .showAboutWindowRequested,
             object: nil
@@ -59,6 +68,10 @@ final class ClaudePilotAppDelegate: NSObject, NSApplicationDelegate, NSWindowDel
 
     @objc private func handleOpenTriggerWindowRequested() {
         showTriggerWindow()
+    }
+
+    @objc private func handleOpenTriggerLogWindowRequested() {
+        showTriggerLogWindow()
     }
 
     @objc private func handleShowAboutWindowRequested() {
@@ -149,6 +162,55 @@ final class ClaudePilotAppDelegate: NSObject, NSApplicationDelegate, NSWindowDel
         triggerWindow = window
     }
 
+    func showTriggerLogWindow() {
+        if let existing = existingWindow(identifier: Self.triggerLogWindowIdentifier) {
+            triggerLogWindow = existing
+            existing.makeKeyAndOrderFront(nil)
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            return
+        }
+
+        if let window = triggerLogWindow {
+            window.makeKeyAndOrderFront(nil)
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let rootView = TriggerLogView()
+            .frame(height: 420)
+        let hostingController = NSHostingController(rootView: rootView)
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 640, height: 420),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentViewController = hostingController
+        window.identifier = Self.triggerLogWindowIdentifier
+        window.title = String(localized: "trigger.log.title")
+        window.styleMask.insert(.fullSizeContentView)
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        if window.toolbar == nil {
+            let toolbar = NSToolbar(identifier: NSToolbar.Identifier("claudepilot.trigger-log-toolbar"))
+            toolbar.showsBaselineSeparator = false
+            window.toolbar = toolbar
+        } else {
+            window.toolbar?.showsBaselineSeparator = false
+        }
+        window.toolbarStyle = .unified
+        window.setContentSize(NSSize(width: 640, height: 420))
+        window.minSize = NSSize(width: 560, height: 360)
+        window.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        triggerLogWindow = window
+    }
+
     func showAboutWindow() {
         if let window = aboutWindow, window.isVisible {
             window.makeKeyAndOrderFront(nil)
@@ -179,6 +241,7 @@ final class ClaudePilotAppDelegate: NSObject, NSApplicationDelegate, NSWindowDel
         guard let window = notification.object as? NSWindow else { return }
         if window === mainWindow { mainWindow = nil }
         if window === triggerWindow { triggerWindow = nil }
+        if window === triggerLogWindow { triggerLogWindow = nil }
         if window === aboutWindow { aboutWindow = nil }
     }
 
