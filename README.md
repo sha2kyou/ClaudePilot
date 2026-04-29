@@ -33,7 +33,7 @@ brew install --cask claudepilot
 
 ### Alternative: Download DMG from Release
 
-1. Download `ClaudePilot-latest.dmg` from [Latest Release](https://github.com/sha2kyou/ClaudePilot/releases/latest).
+1. Download `ClaudePilot-vX.Y.Z.dmg` from [Releases](https://github.com/sha2kyou/ClaudePilot/releases).
 2. Drag `ClaudePilot.app` into `/Applications`.
 
 ## Quick Start (Build from source)
