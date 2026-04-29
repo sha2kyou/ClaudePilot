@@ -56,14 +56,6 @@ struct TriggerListView: View {
             }
             .navigationTitle("trigger.navigation.title")
             .toolbar {
-                ToolbarItem(placement: .navigation) {
-                    Button {
-                        NotificationCenter.default.post(name: .openTriggerLogWindowRequested, object: nil)
-                    } label: {
-                        Image(systemName: "doc.text")
-                    }
-                    .help(String(localized: "trigger.help.log"))
-                }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         addTrigger()
