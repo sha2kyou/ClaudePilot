@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-private let customKVColumnWidth: CGFloat = 220
+private let customKVColumnWidth: CGFloat = 200
 private let customKVActionWidth: CGFloat = 20
 
 struct ContentView: View {
@@ -82,7 +82,7 @@ struct ContentView: View {
                         }
                         LabeledContent {
                             SecretToggleField(text: $apiKey, isVisible: $showAPIKey)
-                            .frame(width: customKVColumnWidth)
+                                .frame(width: customKVColumnWidth)
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("content.field.api_key")
@@ -93,7 +93,7 @@ struct ContentView: View {
                         }
                         LabeledContent {
                             SecretToggleField(text: $authToken, isVisible: $showAuthToken)
-                            .frame(width: customKVColumnWidth)
+                                .frame(width: customKVColumnWidth)
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("content.field.auth_token")

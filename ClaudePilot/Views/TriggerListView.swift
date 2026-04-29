@@ -1,7 +1,7 @@
 import SwiftUI
 import CoreWLAN
 
-private let customKVColumnWidth: CGFloat = 220
+private let customKVColumnWidth: CGFloat = 200
 
 struct TriggerListView: View {
     @ObservedObject private var triggerStore = TriggerStore.shared
@@ -273,7 +273,7 @@ struct TriggerDetailView: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    .frame(width: customKVColumnWidth)
+                    .frame(width: customKVColumnWidth, alignment: .trailing)
                 }
 
                 if conditionType == .wifi {
@@ -286,6 +286,7 @@ struct TriggerDetailView: View {
                     LabeledContent("trigger.editor.field.time") {
                         DatePicker("", selection: $timeDate, displayedComponents: .hourAndMinute)
                             .labelsHidden()
+                            .frame(width: customKVColumnWidth, alignment: .trailing)
                     }
                 }
             }
@@ -298,7 +299,7 @@ struct TriggerDetailView: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    .frame(width: customKVColumnWidth)
+                    .frame(width: customKVColumnWidth, alignment: .trailing)
                 }
             }
         }
@@ -341,3 +342,4 @@ struct TriggerDetailView: View {
         return Calendar.current.date(from: c) ?? Date()
     }
 }
+
