@@ -167,7 +167,20 @@ final class TriggerStore: ObservableObject {
             }
             let profileName = targetProfileDisplayName(for: trigger)
             profileStore.switchProfileAndApply(profileID: trigger.targetProfileID)
-            appendTriggerLog(messageForFired(source: source, triggerName: trigger.name, profileName: profileName))
+            if profileStore.currentProfileID == trigger.targetProfileID {
+                appendTriggerLog(messageForFired(source: source, triggerName: trigger.name, profileName: profileName))
+                didFire = true
+                break
+            }
+
+            appendTriggerLog(
+                messageForFailed(
+                    source: source,
+                    triggerName: trigger.name,
+                    profileName: profileName,
+                    errorMessage: profileStore.statusMessage
+                )
+            )
             didFire = true
             break
         }
@@ -211,6 +224,35 @@ final class TriggerStore: ObservableObject {
                 hour,
                 minute,
                 triggerName
+            )
+        }
+    }
+
+    private func messageForFailed(
+        source: TriggerSource,
+        triggerName: String,
+        profileName: String,
+        errorMessage: String
+    ) -> String {
+        let fallbackError = String(localized: "trigger.log.error.unknown")
+        let detail = errorMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? fallbackError : errorMessage
+        switch source {
+        case .wifi(let ssid):
+            return String(
+                format: String(localized: "trigger.log.wifi.failed"),
+                ssid,
+                triggerName,
+                profileName,
+                detail
+            )
+        case .time(let hour, let minute):
+            return String(
+                format: String(localized: "trigger.log.time.failed"),
+                hour,
+                minute,
+                triggerName,
+                profileName,
+                detail
             )
         }
     }

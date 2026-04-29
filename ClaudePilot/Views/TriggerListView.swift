@@ -156,19 +156,25 @@ private struct TriggerLogSheet: View {
                     ContentUnavailableView("trigger.log.empty", systemImage: "list.bullet.rectangle")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    List(triggerStore.triggerLogEntries) { entry in
-                        HStack(alignment: .firstTextBaseline, spacing: 10) {
-                            Text(entry.date.formatted(date: .omitted, time: .standard))
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                                .frame(width: 64, alignment: .leading)
-                            Text(entry.message)
-                                .textSelection(.enabled)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                    Form {
+                        Section {
+                            ForEach(triggerStore.triggerLogEntries) { entry in
+                                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                                    Text(entry.date.formatted(date: .omitted, time: .standard))
+                                        .font(.caption.monospacedDigit())
+                                        .foregroundStyle(.tertiary)
+                                        .frame(width: 64, alignment: .leading)
+                                    Text(entry.message)
+                                        .font(.callout)
+                                        .foregroundStyle(.primary)
+                                        .textSelection(.enabled)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .padding(.vertical, 2)
+                            }
                         }
-                        .padding(.vertical, 5)
                     }
-                    .listStyle(.plain)
+                    .formStyle(.grouped)
                 }
             }
             .navigationTitle("trigger.log.title")

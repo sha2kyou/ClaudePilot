@@ -41,9 +41,12 @@
 "trigger.log.clear" = "Clear";
 "trigger.log.done" = "Done";
 "trigger.log.wifi.fired" = "WiFi \"%@\" triggered \"%@\", action: switched to \"%@\"";
-"trigger.log.wifi.same_profile" = "WiFi \"%@\" triggered \"%@\", action: skipped (already on target profile)";
+"trigger.log.wifi.same_profile" = "WiFi \"%@\" triggered \"%@\", action: skipped";
+"trigger.log.wifi.failed" = "WiFi \"%@\" triggered \"%@\", action: failed to switch to \"%@\" (%@)";
 "trigger.log.time.fired" = "Time %02d:%02d triggered \"%@\", action: switched to \"%@\"";
-"trigger.log.time.same_profile" = "Time %02d:%02d triggered \"%@\", action: skipped (already on target profile)";
+"trigger.log.time.same_profile" = "Time %02d:%02d triggered \"%@\", action: skipped";
+"trigger.log.time.failed" = "Time %02d:%02d triggered \"%@\", action: failed to switch to \"%@\" (%@)";
+"trigger.log.error.unknown" = "Unknown error";
 "trigger.dialog.delete.title" = "Delete this trigger?";
 "trigger.profile.unknown" = "Unknown Profile";
 "trigger.warning.profile_deleted" = "The target profile has been deleted";
