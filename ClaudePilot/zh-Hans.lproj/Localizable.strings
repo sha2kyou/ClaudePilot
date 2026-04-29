@@ -74,6 +74,10 @@
 "trigger.editor.section.action" = "触发动作";
 "trigger.editor.field.target_profile" = "切换到";
 "trigger.editor.profile.placeholder" = "选择配置";
+"trigger.editor.action.use_current_wifi" = "当前WIFI";
+"trigger.editor.action.ok" = "确定";
+"trigger.editor.current_wifi.unavailable" = "无法获取当前 WiFi 名称，请确认已连接网络且权限已授权。";
+"trigger.editor.current_wifi.denied" = "位置权限未授权，请先在系统设置中授予权限。";
 
 
 "about.menu_item" = "关于 ClaudePilot";

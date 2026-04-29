@@ -255,6 +255,7 @@ struct TriggerDetailView: View {
     @State private var timeDate: Date
     @State private var targetProfileID: UUID?
     @State private var isLoading = false
+    @State private var wifiFillAlertMessage: String?
 
     enum ConditionType: CaseIterable {
         case wifi, time
@@ -276,7 +277,7 @@ struct TriggerDetailView: View {
         case .wifiConnected(let ssid):
             _conditionType = State(initialValue: .wifi)
             _wifiSSID = State(initialValue: ssid)
-            _timeDate = State(initialValue: Self.makeDate(hour: 9, minute: 0))
+            _timeDate = State(initialValue: Date())
         case .dailyTime(let h, let m):
             _conditionType = State(initialValue: .time)
             _wifiSSID = State(initialValue: "")
@@ -329,9 +330,16 @@ struct TriggerDetailView: View {
 
                 if conditionType == .wifi {
                     LabeledContent("trigger.editor.field.ssid") {
-                        TextField("", text: $wifiSSID)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: customKVColumnWidth)
+                        HStack(spacing: 8) {
+                            TextField("", text: $wifiSSID)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: customKVColumnWidth)
+                            Button("trigger.editor.action.use_current_wifi") {
+                                fillCurrentWiFiSSID()
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(wifiMonitor.isLocationDenied)
+                        }
                     }
                 } else {
                     LabeledContent("trigger.editor.field.time") {
@@ -356,10 +364,29 @@ struct TriggerDetailView: View {
         }
         .formStyle(.grouped)
         .onChange(of: name) { _, _ in autoSave() }
-        .onChange(of: conditionType) { _, _ in autoSave() }
+        .onChange(of: conditionType) { oldValue, newValue in
+            if oldValue == .wifi && newValue == .time {
+                timeDate = Date()
+                return
+            }
+            autoSave()
+        }
         .onChange(of: wifiSSID) { _, _ in autoSave() }
         .onChange(of: timeDate) { _, _ in autoSave() }
         .onChange(of: targetProfileID) { _, _ in autoSave() }
+        .alert(
+            String(localized: "trigger.editor.action.use_current_wifi"),
+            isPresented: Binding(
+                get: { wifiFillAlertMessage != nil },
+                set: { newValue in
+                    if !newValue { wifiFillAlertMessage = nil }
+                }
+            )
+        ) {
+            Button(String(localized: "trigger.editor.action.ok"), role: .cancel) {}
+        } message: {
+            Text(wifiFillAlertMessage ?? "")
+        }
     }
 
     private func autoSave() {
@@ -391,6 +418,21 @@ struct TriggerDetailView: View {
         c.hour = hour
         c.minute = minute
         return Calendar.current.date(from: c) ?? Date()
+    }
+
+    private func fillCurrentWiFiSSID() {
+        if wifiMonitor.isLocationDenied {
+            wifiFillAlertMessage = String(localized: "trigger.editor.current_wifi.denied")
+            return
+        }
+
+        let ssid = wifiMonitor.currentSSID ?? WiFiMonitor.readCurrentSSID()
+        guard let ssid, !ssid.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            wifiFillAlertMessage = String(localized: "trigger.editor.current_wifi.unavailable")
+            return
+        }
+
+        wifiSSID = ssid
     }
 }
 

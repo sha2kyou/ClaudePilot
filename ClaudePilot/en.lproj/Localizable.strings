@@ -74,6 +74,10 @@
 "trigger.editor.section.action" = "Action";
 "trigger.editor.field.target_profile" = "Switch to";
 "trigger.editor.profile.placeholder" = "Select a profile";
+"trigger.editor.action.use_current_wifi" = "Current WIFI";
+"trigger.editor.action.ok" = "OK";
+"trigger.editor.current_wifi.unavailable" = "Current Wi-Fi name is unavailable. Please confirm you are connected and permission is granted.";
+"trigger.editor.current_wifi.denied" = "Location permission is denied. Please grant permission in System Settings.";
 
 
 "about.menu_item" = "About ClaudePilot";
