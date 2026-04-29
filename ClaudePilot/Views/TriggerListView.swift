@@ -272,7 +272,7 @@ struct TriggerDetailView: View {
                             Text(type.localizedName).tag(type)
                         }
                     }
-                    .pickerStyle(.segmented)
+                    .pickerStyle(.menu)
                     .frame(width: customKVColumnWidth)
                 }
 
