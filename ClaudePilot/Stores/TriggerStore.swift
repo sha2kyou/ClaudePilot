@@ -85,9 +85,9 @@ final class TriggerStore: ObservableObject {
     private let profileStore = SharedProfileStore.instance
     private let fileManager = FileManager.default
 
-    // 防抖：记录上次触发时间，同一触发器 60 秒内只执行一次
+    // 防抖：记录上次触发时间，同一触发器 3 秒内只执行一次
     private var lastFiredAt: [UUID: Date] = [:]
-    private let maxTriggerLogEntries = 200
+    private let maxTriggerLogEntries = 50
     
     private enum TriggerSource {
         case wifi(ssid: String)
@@ -164,7 +164,7 @@ final class TriggerStore: ObservableObject {
         var didFire = false
         
         for trigger in triggers {
-            if let last = lastFiredAt[trigger.id], now.timeIntervalSince(last) < 60 {
+            if let last = lastFiredAt[trigger.id], now.timeIntervalSince(last) < 3 {
                 if firstDebounced == nil {
                     firstDebounced = trigger
                 }

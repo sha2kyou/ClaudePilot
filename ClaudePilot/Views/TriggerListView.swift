@@ -161,10 +161,12 @@ private struct TriggerLogSheet: View {
                             Text(entry.date.formatted(date: .omitted, time: .standard))
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(.secondary)
+                                .frame(width: 64, alignment: .leading)
                             Text(entry.message)
                                 .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .padding(.vertical, 2)
+                        .padding(.vertical, 5)
                     }
                     .listStyle(.plain)
                 }
