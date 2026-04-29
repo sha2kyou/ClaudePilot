@@ -22,7 +22,21 @@ ClaudePilot is a macOS menu bar application for managing multiple Claude API pro
 - macOS 14.0+
 - Xcode version capable of building this project
 
-## Quick Start
+## Installation
+
+### Recommended: Homebrew Cask
+
+```bash
+brew tap sha2kyou/tap
+brew install --cask claudepilot
+```
+
+### Alternative: Download DMG from Release
+
+1. Download `ClaudePilot-latest.dmg` from [Latest Release](https://github.com/sha2kyou/ClaudePilot/releases/latest).
+2. Drag `ClaudePilot.app` into `/Applications`.
+
+## Quick Start (Build from source)
 
 1. Open `ClaudePilot.xcodeproj` in Xcode.
 2. Select the `ClaudePilot` scheme and run.
@@ -43,13 +57,13 @@ ClaudePilot is a macOS menu bar application for managing multiple Claude API pro
 
 When running unsigned builds on other macOS machines, Gatekeeper may block launch (for example, "Developer cannot be verified" or "App is damaged").
 
-For local testing, advanced users can try right-click **Open**, or remove quarantine attributes:
+If Gatekeeper blocks launch on unsigned builds, advanced users can try right-click **Open**. You can also remove quarantine attributes manually:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/ClaudePilot.app
 ```
 
-This workaround is not suitable for production distribution.
+When installed via Homebrew cask from `sha2kyou/tap`, this command is automatically executed in `postflight`.
 
 ## Build and Release
 

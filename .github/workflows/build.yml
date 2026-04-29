@@ -40,20 +40,24 @@ jobs:
       - name: Package .dmg
         run: |
           APP_PATH="${RUNNER_TEMP}/DerivedData/Build/Products/Release/ClaudePilot.app"
-          OUTPUT_DMG="${RUNNER_TEMP}/ClaudePilot-${GITHUB_REF_NAME}.dmg"
+          OUTPUT_DMG_VERSIONED="${RUNNER_TEMP}/ClaudePilot-${GITHUB_REF_NAME}.dmg"
+          OUTPUT_DMG_LATEST="${RUNNER_TEMP}/ClaudePilot-latest.dmg"
           test -d "${APP_PATH}"
           hdiutil create \
             -volname "ClaudePilot" \
             -srcfolder "${APP_PATH}" \
             -ov \
             -format UDZO \
-            "${OUTPUT_DMG}"
+            "${OUTPUT_DMG_VERSIONED}"
+          cp "${OUTPUT_DMG_VERSIONED}" "${OUTPUT_DMG_LATEST}"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ClaudePilot-${{ github.ref_name }}
-          path: ${{ runner.temp }}/ClaudePilot-${{ github.ref_name }}.dmg
+          path: |
+            ${{ runner.temp }}/ClaudePilot-${{ github.ref_name }}.dmg
+            ${{ runner.temp }}/ClaudePilot-latest.dmg
           if-no-files-found: error
 
   release:
@@ -69,6 +73,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ClaudePilot-${{ github.ref_name }}.dmg
+          files: |
+            ClaudePilot-${{ github.ref_name }}.dmg
+            ClaudePilot-latest.dmg
           generate_release_notes: true
           fail_on_unmatched_files: true
