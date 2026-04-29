@@ -76,15 +76,28 @@ jobs:
   update-homebrew-tap:
     name: Update Homebrew Tap
     needs: release
-    if: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
     runs-on: ubuntu-latest
+    env:
+      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
     steps:
+      - name: Check Tap Token
+        id: token
+        run: |
+          if [ -z "${HOMEBREW_TAP_TOKEN}" ]; then
+            echo "run_update=false" >> "${GITHUB_OUTPUT}"
+            echo "HOMEBREW_TAP_TOKEN is empty, skip tap update."
+          else
+            echo "run_update=true" >> "${GITHUB_OUTPUT}"
+          fi
+
       - name: Download Artifact
+        if: ${{ steps.token.outputs.run_update == 'true' }}
         uses: actions/download-artifact@v4
         with:
           name: ClaudePilot-${{ github.ref_name }}
 
       - name: Compute Version and SHA256
+        if: ${{ steps.token.outputs.run_update == 'true' }}
         id: vars
         run: |
           TAG="${GITHUB_REF_NAME}"
@@ -95,10 +108,12 @@ jobs:
           echo "sha256=${SHA256}" >> "${GITHUB_OUTPUT}"
 
       - name: Checkout Tap Repository
+        if: ${{ steps.token.outputs.run_update == 'true' }}
         run: |
           git clone "https://x-access-token:${{ secrets.HOMEBREW_TAP_TOKEN }}@github.com/sha2kyou/homebrew-tap.git" tap
 
       - name: Update Cask File
+        if: ${{ steps.token.outputs.run_update == 'true' }}
         run: |
           cat > tap/Casks/claudepilot.rb <<EOF
           cask "claudepilot" do
@@ -129,6 +144,7 @@ jobs:
           EOF
 
       - name: Commit and Push Tap Changes
+        if: ${{ steps.token.outputs.run_update == 'true' }}
         run: |
           cd tap
           git config user.name "github-actions[bot]"
