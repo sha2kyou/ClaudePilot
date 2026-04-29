@@ -42,10 +42,8 @@
 "trigger.log.done" = "完成";
 "trigger.log.wifi.fired" = "WiFi「%@」触发「%@」，动作：切换到「%@」";
 "trigger.log.wifi.same_profile" = "WiFi「%@」触发「%@」，动作：跳过（目标已是当前配置）";
-"trigger.log.wifi.debounced" = "WiFi「%@」触发「%@」，动作：跳过（3 秒内已触发）";
 "trigger.log.time.fired" = "时间 %02d:%02d 触发「%@」，动作：切换到「%@」";
 "trigger.log.time.same_profile" = "时间 %02d:%02d 触发「%@」，动作：跳过（目标已是当前配置）";
-"trigger.log.time.debounced" = "时间 %02d:%02d 触发「%@」，动作：跳过（3 秒内已触发）";
 "trigger.dialog.delete.title" = "确认删除该触发器？";
 "trigger.profile.unknown" = "未知配置";
 "trigger.warning.profile_deleted" = "目标配置已被删除";

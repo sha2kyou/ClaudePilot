@@ -85,8 +85,6 @@ final class TriggerStore: ObservableObject {
     private let profileStore = SharedProfileStore.instance
     private let fileManager = FileManager.default
 
-    // 防抖：记录上次触发时间，同一触发器 3 秒内只执行一次
-    private var lastFiredAt: [UUID: Date] = [:]
     private let maxTriggerLogEntries = 50
     
     private enum TriggerSource {
@@ -111,7 +109,6 @@ final class TriggerStore: ObservableObject {
 
     func deleteTrigger(id: UUID) {
         triggers.removeAll { $0.id == id }
-        lastFiredAt.removeValue(forKey: id)
         persist()
     }
 
@@ -158,39 +155,25 @@ final class TriggerStore: ObservableObject {
     }
 
     private func fire(triggers: [Trigger], source: TriggerSource) {
-        let now = Date()
-        var firstDebounced: Trigger?
         var firstSameProfile: Trigger?
         var didFire = false
         
         for trigger in triggers {
-            if let last = lastFiredAt[trigger.id], now.timeIntervalSince(last) < 3 {
-                if firstDebounced == nil {
-                    firstDebounced = trigger
-                }
-                continue
-            }
             if profileStore.currentProfileID == trigger.targetProfileID {
                 if firstSameProfile == nil {
                     firstSameProfile = trigger
                 }
-                lastFiredAt[trigger.id] = now
                 continue
             }
             let profileName = targetProfileDisplayName(for: trigger)
-            lastFiredAt[trigger.id] = now
             profileStore.switchProfileAndApply(profileID: trigger.targetProfileID)
             appendTriggerLog(messageForFired(source: source, triggerName: trigger.name, profileName: profileName))
             didFire = true
             break
         }
         
-        if !didFire, firstSameProfile != nil || firstDebounced != nil {
-            if let trigger = firstSameProfile {
-                appendTriggerLog(messageForSameProfile(source: source, triggerName: trigger.name))
-            } else if let trigger = firstDebounced {
-                appendTriggerLog(messageForDebounced(source: source, triggerName: trigger.name))
-            }
+        if !didFire, let trigger = firstSameProfile {
+            appendTriggerLog(messageForSameProfile(source: source, triggerName: trigger.name))
         }
     }
     
@@ -232,24 +215,6 @@ final class TriggerStore: ObservableObject {
         }
     }
     
-    private func messageForDebounced(source: TriggerSource, triggerName: String) -> String {
-        switch source {
-        case .wifi(let ssid):
-            return String(
-                format: String(localized: "trigger.log.wifi.debounced"),
-                ssid,
-                triggerName
-            )
-        case .time(let hour, let minute):
-            return String(
-                format: String(localized: "trigger.log.time.debounced"),
-                hour,
-                minute,
-                triggerName
-            )
-        }
-    }
-
     private func persist() {
         guard let data = try? JSONEncoder().encode(triggers) else { return }
         do {
