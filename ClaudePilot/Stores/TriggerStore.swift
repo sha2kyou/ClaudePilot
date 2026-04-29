@@ -69,17 +69,30 @@ struct Trigger: Identifiable, Codable, Equatable {
     }
 }
 
+struct TriggerLogEntry: Identifiable, Codable, Equatable {
+    let id: UUID
+    let date: Date
+    let message: String
+}
+
 @MainActor
 final class TriggerStore: ObservableObject {
     static let shared = TriggerStore()
 
     @Published var triggers: [Trigger] = []
+    @Published private(set) var triggerLogEntries: [TriggerLogEntry] = []
 
     private let profileStore = SharedProfileStore.instance
     private let fileManager = FileManager.default
 
     // 防抖：记录上次触发时间，同一触发器 60 秒内只执行一次
     private var lastFiredAt: [UUID: Date] = [:]
+    private let maxTriggerLogEntries = 200
+    
+    private enum TriggerSource {
+        case wifi(ssid: String)
+        case time(hour: Int, minute: Int)
+    }
 
     private init() {
         load()
@@ -102,21 +115,20 @@ final class TriggerStore: ObservableObject {
         persist()
     }
 
+    func clearTriggerLog() {
+        triggerLogEntries.removeAll()
+        persistTriggerLog()
+    }
+
     func evaluateWiFi(ssid: String?) {
-        print("[TriggerStore] evaluateWiFi ssid=\(ssid ?? "nil"), triggers=\(triggers.map { "\($0.name):\($0.condition)" })")
-        guard let ssid, !ssid.isEmpty else {
-            print("[TriggerStore] evaluateWiFi: ssid nil or empty, skip")
-            return
-        }
+        guard let ssid, !ssid.isEmpty else { return }
         let matched = triggers.filter { trigger in
             if case .wifiConnected(let targetSSID) = trigger.condition {
-                print("[TriggerStore] comparing targetSSID='\(targetSSID)' vs ssid='\(ssid)' -> \(targetSSID == ssid)")
                 return targetSSID == ssid
             }
             return false
         }
-        print("[TriggerStore] matched \(matched.count) trigger(s)")
-        fire(triggers: matched)
+        fire(triggers: matched, source: .wifi(ssid: ssid))
     }
 
     func evaluateTime(date: Date = Date()) {
@@ -128,25 +140,113 @@ final class TriggerStore: ObservableObject {
             }
             return false
         }
-        fire(triggers: matched)
+        fire(triggers: matched, source: .time(hour: hour, minute: minute))
     }
 
-    private func fire(triggers: [Trigger]) {
+    private func appendTriggerLog(_ message: String) {
+        let entry = TriggerLogEntry(id: UUID(), date: Date(), message: message)
+        triggerLogEntries.insert(entry, at: 0)
+        if triggerLogEntries.count > maxTriggerLogEntries {
+            triggerLogEntries.removeLast(triggerLogEntries.count - maxTriggerLogEntries)
+        }
+        persistTriggerLog()
+    }
+
+    private func targetProfileDisplayName(for trigger: Trigger) -> String {
+        profileStore.profiles.first(where: { $0.id == trigger.targetProfileID })?.name
+            ?? String(localized: "trigger.profile.unknown")
+    }
+
+    private func fire(triggers: [Trigger], source: TriggerSource) {
         let now = Date()
+        var firstDebounced: Trigger?
+        var firstSameProfile: Trigger?
+        var didFire = false
+        
         for trigger in triggers {
             if let last = lastFiredAt[trigger.id], now.timeIntervalSince(last) < 60 {
-                print("[TriggerStore] trigger '\(trigger.name)' debounced, skip")
+                if firstDebounced == nil {
+                    firstDebounced = trigger
+                }
                 continue
             }
             if profileStore.currentProfileID == trigger.targetProfileID {
-                print("[TriggerStore] trigger '\(trigger.name)' target equals current profile, skip")
+                if firstSameProfile == nil {
+                    firstSameProfile = trigger
+                }
                 lastFiredAt[trigger.id] = now
                 continue
             }
-            print("[TriggerStore] firing trigger '\(trigger.name)' -> profileID=\(trigger.targetProfileID)")
+            let profileName = targetProfileDisplayName(for: trigger)
             lastFiredAt[trigger.id] = now
             profileStore.switchProfileAndApply(profileID: trigger.targetProfileID)
+            appendTriggerLog(messageForFired(source: source, triggerName: trigger.name, profileName: profileName))
+            didFire = true
             break
+        }
+        
+        if !didFire, firstSameProfile != nil || firstDebounced != nil {
+            if let trigger = firstSameProfile {
+                appendTriggerLog(messageForSameProfile(source: source, triggerName: trigger.name))
+            } else if let trigger = firstDebounced {
+                appendTriggerLog(messageForDebounced(source: source, triggerName: trigger.name))
+            }
+        }
+    }
+    
+    private func messageForFired(source: TriggerSource, triggerName: String, profileName: String) -> String {
+        switch source {
+        case .wifi(let ssid):
+            return String(
+                format: String(localized: "trigger.log.wifi.fired"),
+                ssid,
+                triggerName,
+                profileName
+            )
+        case .time(let hour, let minute):
+            return String(
+                format: String(localized: "trigger.log.time.fired"),
+                hour,
+                minute,
+                triggerName,
+                profileName
+            )
+        }
+    }
+    
+    private func messageForSameProfile(source: TriggerSource, triggerName: String) -> String {
+        switch source {
+        case .wifi(let ssid):
+            return String(
+                format: String(localized: "trigger.log.wifi.same_profile"),
+                ssid,
+                triggerName
+            )
+        case .time(let hour, let minute):
+            return String(
+                format: String(localized: "trigger.log.time.same_profile"),
+                hour,
+                minute,
+                triggerName
+            )
+        }
+    }
+    
+    private func messageForDebounced(source: TriggerSource, triggerName: String) -> String {
+        switch source {
+        case .wifi(let ssid):
+            return String(
+                format: String(localized: "trigger.log.wifi.debounced"),
+                ssid,
+                triggerName
+            )
+        case .time(let hour, let minute):
+            return String(
+                format: String(localized: "trigger.log.time.debounced"),
+                hour,
+                minute,
+                triggerName
+            )
         }
     }
 
@@ -187,14 +287,67 @@ final class TriggerStore: ObservableObject {
         guard let data = try? Data(contentsOf: triggersFileURL()),
               let decoded = try? JSONDecoder().decode([Trigger].self, from: data) else {
             triggers = []
+            loadTriggerLog()
             return
         }
         triggers = decoded
+        loadTriggerLog()
+    }
+    
+    private func persistTriggerLog() {
+        guard let data = try? JSONEncoder().encode(triggerLogEntries) else { return }
+        do {
+            let dir = try appSupportDirectory()
+            try fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
+            let url = triggerLogsFileURL()
+            let tmp = url.deletingLastPathComponent()
+                .appendingPathComponent(".\(url.lastPathComponent).tmp-\(UUID().uuidString)")
+            var shouldCleanupTemp = true
+            defer {
+                if shouldCleanupTemp {
+                    try? fileManager.removeItem(at: tmp)
+                }
+            }
+            guard fileManager.createFile(atPath: tmp.path, contents: nil) else { return }
+            let handle = try FileHandle(forWritingTo: tmp)
+            do {
+                try handle.write(contentsOf: data)
+                try handle.synchronize()
+                try handle.close()
+            } catch {
+                try? handle.close()
+                throw error
+            }
+            if fileManager.fileExists(atPath: url.path) {
+                _ = try fileManager.replaceItemAt(url, withItemAt: tmp)
+            } else {
+                try fileManager.moveItem(at: tmp, to: url)
+            }
+            shouldCleanupTemp = false
+        } catch {}
+    }
+    
+    private func loadTriggerLog() {
+        guard let data = try? Data(contentsOf: triggerLogsFileURL()),
+              let decoded = try? JSONDecoder().decode([TriggerLogEntry].self, from: data) else {
+            triggerLogEntries = []
+            return
+        }
+        if decoded.count > maxTriggerLogEntries {
+            triggerLogEntries = Array(decoded.prefix(maxTriggerLogEntries))
+        } else {
+            triggerLogEntries = decoded
+        }
     }
 
     private func triggersFileURL() -> URL {
         (try? appSupportDirectory().appendingPathComponent("triggers.json", isDirectory: false))
             ?? URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("triggers.json")
+    }
+    
+    private func triggerLogsFileURL() -> URL {
+        (try? appSupportDirectory().appendingPathComponent("trigger_logs.json", isDirectory: false))
+            ?? URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("trigger_logs.json")
     }
 
     private func appSupportDirectory() throws -> URL {

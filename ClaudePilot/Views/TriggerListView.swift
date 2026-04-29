@@ -10,6 +10,7 @@ struct TriggerListView: View {
     @State private var selectedTriggerID: UUID?
     @State private var pendingDeleteID: UUID?
     @State private var confirmingDelete = false
+    @State private var showTriggerLog = false
 
     var body: some View {
         NavigationSplitView {
@@ -54,6 +55,14 @@ struct TriggerListView: View {
             }
             .navigationTitle("trigger.navigation.title")
             .toolbar {
+                ToolbarItem(placement: .navigation) {
+                    Button {
+                        showTriggerLog = true
+                    } label: {
+                        Image(systemName: "doc.text")
+                    }
+                    .help(String(localized: "trigger.help.log"))
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         addTrigger()
@@ -73,7 +82,7 @@ struct TriggerListView: View {
                     .environmentObject(profileStore)
                     .id(id)
             } else {
-                ContentUnavailableView("trigger.empty.select", systemImage: "bolt.horizontal")
+                EmptyView()
             }
         }
         .confirmationDialog(
@@ -88,6 +97,15 @@ struct TriggerListView: View {
                 }
             }
             Button(String(localized: "content.action.cancel"), role: .cancel) {}
+        }
+        .sheet(isPresented: $showTriggerLog) {
+            TriggerLogSheet()
+        }
+        .onAppear {
+            ensureSelection()
+        }
+        .onChange(of: triggerStore.triggers) { _, _ in
+            ensureSelection()
         }
     }
 
@@ -116,6 +134,58 @@ struct TriggerListView: View {
         let profileName = profileStore.profiles.first(where: { $0.id == trigger.targetProfileID })?.name
             ?? String(localized: "trigger.profile.unknown")
         return "\(trigger.condition.displaySummary) \(arrow) \(profileName)"
+    }
+
+    private func ensureSelection() {
+        if let selectedTriggerID,
+           triggerStore.triggers.contains(where: { $0.id == selectedTriggerID }) {
+            return
+        }
+        selectedTriggerID = triggerStore.triggers.first?.id
+    }
+}
+
+private struct TriggerLogSheet: View {
+    @ObservedObject private var triggerStore = TriggerStore.shared
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if triggerStore.triggerLogEntries.isEmpty {
+                    ContentUnavailableView("trigger.log.empty", systemImage: "list.bullet.rectangle")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List(triggerStore.triggerLogEntries) { entry in
+                        HStack(alignment: .firstTextBaseline, spacing: 10) {
+                            Text(entry.date.formatted(date: .omitted, time: .standard))
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                            Text(entry.message)
+                                .textSelection(.enabled)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .listStyle(.plain)
+                }
+            }
+            .navigationTitle("trigger.log.title")
+            .toolbarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(String(localized: "trigger.log.done")) {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button(String(localized: "trigger.log.clear")) {
+                        triggerStore.clearTriggerLog()
+                    }
+                    .disabled(triggerStore.triggerLogEntries.isEmpty)
+                }
+            }
+        }
+        .frame(minWidth: 560, minHeight: 360)
     }
 }
 
