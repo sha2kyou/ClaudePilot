@@ -19,12 +19,20 @@ struct TriggerListView: View {
                     ForEach(triggerStore.triggers) { trigger in
                         HStack(spacing: 8) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(trigger.name)
-                                    .lineLimit(1)
-                                Text(conditionSummary(trigger))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
+                                HStack(spacing: 6) {
+                                    Image(systemName: conditionIconName(for: trigger))
+                                        .font(.caption2)
+                                        .fontWeight(.regular)
+                                        .foregroundStyle(.secondary)
+                                    Text(trigger.name)
+                                        .lineLimit(1)
+                                }
+                                HStack(spacing: 6) {
+                                    Text(conditionSummary(trigger))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
                             }
 
                             Spacer(minLength: 8)
@@ -133,7 +141,23 @@ struct TriggerListView: View {
         let arrow = "→"
         let profileName = profileStore.profiles.first(where: { $0.id == trigger.targetProfileID })?.name
             ?? String(localized: "trigger.profile.unknown")
-        return "\(trigger.condition.displaySummary) \(arrow) \(profileName)"
+        let conditionText: String
+        switch trigger.condition {
+        case .wifiConnected(let ssid):
+            conditionText = ssid
+        case .dailyTime(let hour, let minute):
+            conditionText = String(format: "%02d:%02d", hour, minute)
+        }
+        return "\(conditionText) \(arrow) \(profileName)"
+    }
+
+    private func conditionIconName(for trigger: Trigger) -> String {
+        switch trigger.condition {
+        case .wifiConnected:
+            return "wifi"
+        case .dailyTime:
+            return "clock"
+        }
     }
 
     private func ensureSelection() {
@@ -220,6 +244,13 @@ struct TriggerDetailView: View {
             case .time: return String(localized: "trigger.condition.type.time")
             }
         }
+
+        var iconName: String {
+            switch self {
+            case .wifi: return "wifi"
+            case .time: return "clock"
+            }
+        }
     }
 
     init(trigger: Trigger) {
@@ -275,7 +306,7 @@ struct TriggerDetailView: View {
                 LabeledContent("trigger.editor.field.condition_type") {
                     Picker("", selection: $conditionType) {
                         ForEach(ConditionType.allCases, id: \.self) { type in
-                            Text(type.localizedName).tag(type)
+                            Label(type.localizedName, systemImage: type.iconName).tag(type)
                         }
                     }
                     .pickerStyle(.menu)
